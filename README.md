@@ -1,8 +1,8 @@
 # PSA — Triagem de Mensagens WhatsApp no n8n
 
-Olá! Este repositório foi desenvolvido para o **Desafio Prático de Analista de IA da PSA (Profissionais SA)**.
+Olá! Desenvolvi este repositório para o **Desafio Prático de Analista de IA da PSA (Profissionais SA)**.
 
-Aqui você encontra a solução completa entregue em dois níveis:
+Aqui você encontra a solução completa que construí em dois níveis:
 1. **O Entregável Oficial**: Atendimento 100% fiel a todos os requisitos do documento do desafio (PDF), utilizando nós nativos do n8n com nó Code defensivo.
 2. **O Overdelivery (Enterprise AI)**: Um segundo workflow em produção equipado com **Inteligência Artificial real (OpenAI GPT-4o-mini)** para classificação semântica de intenções, geração de respostas empáticas, validação de schema (400 Bad Request) e metadados de observabilidade.
 
@@ -15,7 +15,7 @@ Ambos os fluxos estão **ativos em produção** e prontos para teste imediato.
 Você pode testar a solução de três formas diferentes:
 
 ### 1. Simulador Web Interativo (Sem instalar nada)
-Criamos um simulador visual no estilo WhatsApp Web que permite testar tanto o **Modo Oficial** quanto o **Modo Enterprise AI** direto no navegador:
+Criei um simulador visual no estilo WhatsApp Web que permite testar tanto o **Modo Oficial** quanto o **Modo Enterprise AI** direto no navegador:
 
 👉 **[Abrir Simulador Online (GitHub Pages)](https://marcosrodsa.github.io/PSA/)**
 
@@ -79,7 +79,7 @@ graph LR
 ![Canvas Oficial n8n](./screenshots/workflow_canvas.jpg)
 
 ### O Código JavaScript do Nó Code
-Implementamos uma normalização com foco em tolerância a falhas e boas práticas de processamento de texto:
+Implementei uma normalização com foco em tolerância a falhas e boas práticas de processamento de texto:
 1. **Fallback no payload:** Evita quebras caso o body chegue encapsulado ou vazio.
 2. **Normalização NFD:** Decompõe e remove acentos diacríticos (ex: `"ajudá"` vira `"ajuda"`).
 3. **Conversão para minúsculas:** Trata `"AJUDA"`, `"Ajuda"` e `"ajuda"` de forma uniforme.
@@ -127,7 +127,7 @@ O JSON exportado deste fluxo está disponível em:
 
 ## 🌟 Entregável 2: Overdelivery — Enterprise AI (GPT-4o-mini)
 
-### Por que criamos um segundo fluxo?
+### Por que criei um segundo fluxo?
 Na prática de atendimento ao cliente, buscar apenas a palavra `"ajuda"` é frágil:
 - Clientes com problemas urgentes costumam escrever: *"meu produto veio quebrado"*, *"não consigo acessar minha conta"* ou *"socorro, preciso de suporte"*.
 - Clientes comerciais perguntam: *"quanto custa a licença corporativa?"* ou *"quero fechar uma proposta"*.
@@ -135,7 +135,7 @@ Na prática de atendimento ao cliente, buscar apenas a palavra `"ajuda"` é frá
 
 Nenhum desses casos contém a palavra literal `"ajuda"`, mas todos precisam de roteamento prioritário.
 
-Por isso, construímos o **PSA - Triagem Enterprise AI**, conectando o n8n diretamente à **OpenAI (GPT-4o-mini)** para inferência semântica em tempo real.
+Por isso, construí o **PSA - Triagem Enterprise AI**, conectando o n8n diretamente à **OpenAI (GPT-4o-mini)** para inferência semântica em tempo real.
 
 ### Arquitetura Enterprise
 
@@ -229,5 +229,5 @@ Caso você queira subir sua própria instância do n8n localmente:
 ---
 
 <div align="center">
-  <sub>Projeto desenvolvido com dedicação para o processo seletivo de <b>Analista de IA</b> da <b>PSA (Profissionais SA)</b>.</sub>
+  <sub>Projeto desenvolvido por <b>Marcos Rodrigues</b> com dedicação para o processo seletivo de <b>Analista de IA</b> da <b>PSA (Profissionais SA)</b>.</sub>
 </div>
