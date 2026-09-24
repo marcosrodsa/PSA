@@ -165,6 +165,106 @@
         "description": "Valida resiliência de NLP para mensagem em linguagem natural no WhatsApp."
       },
       "response": []
+    },
+    {
+      "name": "04 - Enterprise AI: Suporte Urgente (GPT-4o-mini)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code deve ser 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Deve classificar como SUPORTE_URGENTE\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.metadata.intencao).to.eql(\"SUPORTE_URGENTE\");",
+              "    pm.expect(jsonData.metadata.confianca).to.be.above(0.7);",
+              "});",
+              "",
+              "pm.test(\"Deve conter resposta empática e motor OpenAI\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.resposta).to.be.a(\"string\");",
+              "    pm.expect(jsonData.metadata.motor).to.eql(\"openai/gpt-4o-mini\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"from\": \"5511999990000\",\n  \"mensagem\": \"Meu produto chegou quebrado, preciso de troca urgente!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/webhook/triagem-mensagem-enterprise",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "webhook",
+            "triagem-mensagem-enterprise"
+          ]
+        },
+        "description": "Envia mensagem urgente para classificação semântica com OpenAI GPT-4o-mini."
+      },
+      "response": []
+    },
+    {
+      "name": "05 - Enterprise AI: Validação Defensiva (400 Bad Request)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code deve ser 400 Bad Request\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test(\"Deve retornar mensagem de erro descritiva\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.status).to.eql(\"erro\");",
+              "    pm.expect(jsonData.mensagem).to.include(\"invalido\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"from\": \"\",\n  \"mensagem\": \"\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/webhook/triagem-mensagem-enterprise",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "webhook",
+            "triagem-mensagem-enterprise"
+          ]
+        },
+        "description": "Valida tratamento de erro defensivo quando o payload é vazio ou incompleto."
+      },
+      "response": []
     }
   ]
 }
