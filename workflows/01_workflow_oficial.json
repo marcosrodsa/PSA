@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// BÔNUS: Nó Code em JavaScript\n// Extrai os campos do payload e normaliza o texto para minúsculas\nconst payload = $input.first().json.body || $input.first().json;\n\nconst usuario = payload.from;\nconst texto = payload.mensagem.toLowerCase();\n\nreturn [{ json: { usuario, texto } }];"
+        "jsCode": "// BÔNUS: Nó Code em JavaScript (Engenharia Defensiva)\n\n// 1. Extração segura do body com fallback\nconst payload = $input.first().json.body || $input.first().json;\n\n// 2. Identificador do usuário\nconst usuario = (payload.from || 'desconhecido').toString().trim();\n\n// 3. Normalização NLP completa do texto:\n//    - toString() seguro contra nulos\n//    - normalize('NFD') decompõe caracteres acentuados (ã → a + ˜)\n//    - replace unicode diacríticos (remove os sinais soltos)\n//    - toLowerCase() padroniza para minúsculas\n//    - trim() remove espaços nas extremidades\nconst rawMensagem = (payload.mensagem || '').toString().trim();\nconst texto = rawMensagem\n  .normalize('NFD')\n  .replace(/[\\u0300-\\u036f]/g, '')\n  .toLowerCase();\n\nreturn [{ json: { usuario, texto, rawMensagem } }];"
       },
       "id": "node-code",
       "name": "Code - Extrair e Normalizar",
@@ -226,11 +226,8 @@
       ]
     }
   },
-  "pinData": {},
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
-  },
-  "staticData": null,
-  "meta": null
+  }
 }
