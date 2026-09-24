@@ -12,27 +12,33 @@
       "name": "Webhook - Receber Mensagem",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 300],
-      "webhookId": "psa-triagem-webhook"
+      "position": [
+        240,
+        304
+      ],
+      "webhookId": "psa-triagem-webhook-001"
     },
     {
       "parameters": {
-        "language": "javaScript",
         "jsCode": "// BÔNUS: Nó Code em JavaScript\n// Extrai os campos do payload e normaliza o texto para minúsculas\nconst payload = $input.first().json.body || $input.first().json;\n\nconst usuario = payload.from;\nconst texto = payload.mensagem.toLowerCase();\n\nreturn [{ json: { usuario, texto } }];"
       },
-      "id": "node-code-extrair",
-      "name": "Code - Extrair e Normalizar Dados",
+      "id": "node-code",
+      "name": "Code - Extrair e Normalizar",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [460, 300]
+      "position": [
+        464,
+        304
+      ]
     },
     {
       "parameters": {
         "conditions": {
           "options": {
-            "caseSensitive": false,
+            "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "strict",
+            "version": 1
           },
           "conditions": [
             {
@@ -49,74 +55,83 @@
         },
         "options": {}
       },
-      "id": "node-if-classificar",
-      "name": "IF - Contém 'ajuda'?",
+      "id": "node-if",
+      "name": "IF - Contem ajuda?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [680, 300]
+      "position": [
+        688,
+        304
+      ]
     },
     {
       "parameters": {
         "assignments": {
           "assignments": [
             {
-              "id": "assign-resposta-true",
+              "id": "a1",
+              "name": "usuario",
+              "value": "={{ $('Code - Extrair e Normalizar').first().json.usuario }}",
+              "type": "string"
+            },
+            {
+              "id": "a2",
               "name": "resposta",
               "value": "Olá! Vou te ajudar agora mesmo.",
               "type": "string"
-            },
-            {
-              "id": "assign-usuario-true",
-              "name": "usuario",
-              "value": "={{ $('Code - Extrair e Normalizar Dados').first().json.usuario }}",
-              "type": "string"
             }
           ]
         },
         "options": {}
       },
-      "id": "node-set-resposta-ajuda",
-      "name": "Set - Resposta: Ajuda",
+      "id": "node-set-ajuda",
+      "name": "Set - Resposta Ajuda",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [900, 180]
+      "position": [
+        912,
+        160
+      ]
     },
     {
       "parameters": {
         "assignments": {
           "assignments": [
             {
-              "id": "assign-resposta-false",
-              "name": "resposta",
-              "value": "Mensagem recebida. Em breve retornaremos.",
+              "id": "b1",
+              "name": "usuario",
+              "value": "={{ $('Code - Extrair e Normalizar').first().json.usuario }}",
               "type": "string"
             },
             {
-              "id": "assign-usuario-false",
-              "name": "usuario",
-              "value": "={{ $('Code - Extrair e Normalizar Dados').first().json.usuario }}",
+              "id": "b2",
+              "name": "resposta",
+              "value": "Mensagem recebida. Em breve retornaremos.",
               "type": "string"
             }
           ]
         },
         "options": {}
       },
-      "id": "node-set-resposta-padrao",
-      "name": "Set - Resposta: Padrão",
+      "id": "node-set-padrao",
+      "name": "Set - Resposta Padrao",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [900, 420]
+      "position": [
+        912,
+        448
+      ]
     },
     {
-      "parameters": {
-        "mode": "append",
-        "options": {}
-      },
+      "parameters": {},
       "id": "node-merge",
-      "name": "Merge - Unificar Respostas",
+      "name": "Merge - Unificar",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
-      "position": [1120, 300]
+      "position": [
+        1120,
+        304
+      ]
     },
     {
       "parameters": {
@@ -126,11 +141,14 @@
           "responseCode": 200
         }
       },
-      "id": "node-respond-webhook",
-      "name": "Respond to Webhook - Retornar Resposta",
+      "id": "node-respond",
+      "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1340, 300]
+      "position": [
+        1344,
+        304
+      ]
     }
   ],
   "connections": {
@@ -138,69 +156,69 @@
       "main": [
         [
           {
-            "node": "Code - Extrair e Normalizar Dados",
+            "node": "Code - Extrair e Normalizar",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Code - Extrair e Normalizar Dados": {
+    "Code - Extrair e Normalizar": {
       "main": [
         [
           {
-            "node": "IF - Contém 'ajuda'?",
+            "node": "IF - Contem ajuda?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "IF - Contém 'ajuda'?": {
+    "IF - Contem ajuda?": {
       "main": [
         [
           {
-            "node": "Set - Resposta: Ajuda",
+            "node": "Set - Resposta Ajuda",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Set - Resposta: Padrão",
+            "node": "Set - Resposta Padrao",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Set - Resposta: Ajuda": {
+    "Set - Resposta Ajuda": {
       "main": [
         [
           {
-            "node": "Merge - Unificar Respostas",
+            "node": "Merge - Unificar",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Set - Resposta: Padrão": {
+    "Set - Resposta Padrao": {
       "main": [
         [
           {
-            "node": "Merge - Unificar Respostas",
+            "node": "Merge - Unificar",
             "type": "main",
             "index": 1
           }
         ]
       ]
     },
-    "Merge - Unificar Respostas": {
+    "Merge - Unificar": {
       "main": [
         [
           {
-            "node": "Respond to Webhook - Retornar Resposta",
+            "node": "Respond to Webhook",
             "type": "main",
             "index": 0
           }
@@ -210,10 +228,9 @@
   },
   "pinData": {},
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate"
   },
   "staticData": null,
-  "tags": [{ "name": "PSA" }],
-  "triggerCount": 1,
-  "versionId": "1"
+  "meta": null
 }

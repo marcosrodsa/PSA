@@ -1,4 +1,4 @@
-﻿# PSA — Triagem de Mensagens WhatsApp com n8n
+# PSA — Triagem de Mensagens WhatsApp com n8n
 
 > **Desafio Prático — Analista de IA** · Profissionais SA (PSA)
 
@@ -88,32 +88,36 @@ Response:
 
 ## Screenshots
 
-### Workflow no n8n
+### 1. Workflow Montado no n8n (Editor)
 ![Workflow PSA no n8n](./screenshots/workflow_canvas.jpg)
 
-### Teste — COM "ajuda"
-![Teste 1](./screenshots/teste_com_ajuda.jpg)
+### 2. Execução com Sucesso no Painel do n8n
+![Execução no n8n](./screenshots/painel_n8n_execucao.jpg)
 
-### Teste — SEM "ajuda"
-![Teste 2](./screenshots/teste_sem_ajuda.jpg)
+### 3. Teste no Postman — Mensagem COM "ajuda"
+![Teste 1 - Com Ajuda](./screenshots/teste_com_ajuda.jpg)
+
+### 4. Teste no Postman — Mensagem SEM "ajuda"
+![Teste 2 - Sem Ajuda](./screenshots/teste_sem_ajuda.jpg)
 
 ---
 
 ## Estrutura do Projeto
 
-`
+```
 PSA/
 ├── Desafio Prático Analista IA.pdf   # Problema proposto
-├── workflow_psa_triagem.json          # Workflow exportado do n8n
-├── deploy_workflow.js                 # Script de deploy via API
+├── workflow_psa_triagem.json          # Workflow exportado oficial do n8n
+├── deploy_workflow.js                 # Script de automação/deploy via API
 ├── screenshots/
-│   ├── workflow_canvas.jpg            # Print do workflow montado
-│   ├── teste_com_ajuda.jpg            # Print do teste 1
-│   └── teste_sem_ajuda.jpg           # Print do teste 2
+│   ├── workflow_canvas.jpg            # Print do workflow montado (Canvas)
+│   ├── painel_n8n_execucao.jpg        # Print da execução no painel do n8n
+│   ├── teste_com_ajuda.jpg            # Print do teste Postman (com ajuda)
+│   └── teste_sem_ajuda.jpg           # Print do teste Postman (sem ajuda)
 ├── .env                               # Credenciais (não versionado)
 ├── .gitignore
 └── README.md
-`
+```
 
 ---
 
