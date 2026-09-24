@@ -1,5 +1,5 @@
 {
-  "name": "PSA - Triagem Enterprise AI (Roteamento Semântico e Resiliência)",
+  "name": "PSA - Triagem Enterprise AI (GPT-4o-mini)",
   "nodes": [
     {
       "parameters": {
@@ -9,7 +9,7 @@
         "options": {}
       },
       "id": "node-ent-webhook",
-      "name": "Webhook - Ingestão WhatsApp",
+      "name": "Webhook - Ingestao WhatsApp",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
@@ -21,10 +21,10 @@
     {
       "parameters": {
         "language": "javaScript",
-        "jsCode": "// 1. Validação defensiva do payload\nconst rawInput = $input.first().json.body || $input.first().json || {};\nconst rawFrom = rawInput.from;\nconst rawMensagem = rawInput.mensagem;\n\nif (!rawFrom || !rawMensagem || typeof rawMensagem !== 'string' || rawMensagem.trim().length === 0) {\n  return [{\n    json: {\n      isValid: false,\n      errorCode: 'INVALID_PAYLOAD',\n      errorMessage: \"Os campos 'from' (telefone/ID) e 'mensagem' (texto não vazio) são obrigatórios.\",\n      received: rawInput\n    }\n  }];\n}\n\nconst usuario = String(rawFrom).replace(/\\D/g, '') || String(rawFrom).trim();\nconst textoNormalizado = rawMensagem\n  .normalize('NFD')\n  .replace(/[\\u0300-\\u036f]/g, '')\n  .toLowerCase()\n  .trim();\n\nreturn [{\n  json: {\n    isValid: true,\n    usuario,\n    texto: textoNormalizado,\n    mensagemOriginal: rawMensagem.trim(),\n    receivedAt: new Date().toISOString()\n  }\n}];"
+        "jsCode": "const rawInput = $input.first().json.body || $input.first().json || {};\nconst rawFrom = rawInput.from;\nconst rawMensagem = rawInput.mensagem;\n\nif (!rawFrom || !rawMensagem || typeof rawMensagem !== 'string' || rawMensagem.trim().length === 0) {\n  return [{ json: { isValid: false, errorCode: 'INVALID_PAYLOAD', errorMessage: \"Os campos 'from' e 'mensagem' sao obrigatorios.\", received: rawInput } }];\n}\n\nconst usuario = String(rawFrom).replace(/\\D/g, '') || String(rawFrom).trim();\n\nreturn [{ json: { isValid: true, usuario, mensagemOriginal: rawMensagem.trim(), receivedAt: new Date().toISOString() } }];"
       },
       "id": "node-ent-validator",
-      "name": "Code - Validação e Normalização Defensiva",
+      "name": "Code - Validacao Defensiva",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -55,7 +55,7 @@
         "options": {}
       },
       "id": "node-ent-if",
-      "name": "IF - Payload Válido?",
+      "name": "IF - Payload Valido?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
@@ -66,7 +66,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({\n  status: 'error',\n  codigo: $json.errorCode,\n  mensagem: $json.errorMessage,\n  payloadRecebido: $json.received\n}) }}",
+        "responseBody": "={{ JSON.stringify({ status: 'error', codigo: $json.errorCode, mensagem: $json.errorMessage, payloadRecebido: $json.received }) }}",
         "options": {
           "responseCode": 400
         }
@@ -77,27 +77,73 @@
       "typeVersion": 1.1,
       "position": [
         940,
-        440
+        480
       ]
     },
     {
       "parameters": {
         "language": "javaScript",
-        "jsCode": "// Motor de Classificação Semântica de Intenções\nconst { texto, usuario, mensagemOriginal, receivedAt } = $input.first().json;\n\nconst intencoes = {\n  SUPORTE_URGENTE: {\n    termos: ['ajuda', 'socorro', 'urgente', 'problema', 'defeito', 'quebrou', 'falha', 'erro', 'travou'],\n    resposta: \"Olá! Identificamos que você precisa de suporte urgente. Nossa equipe técnica já foi acionada para te atender com prioridade máxima.\"\n  },\n  COMERCIAL_VENDAS: {\n    termos: ['comprar', 'preco', 'valor', 'orcamento', 'catalogo', 'produto', 'quanto custa', 'promocao'],\n    resposta: \"Olá! Ficamos muito felizes pelo seu interesse em nossas soluções. Um de nossos consultores comerciais entrará em contato em instantes.\"\n  },\n  CANCELAMENTO: {\n    termos: ['cancelar', 'estorno', 'reembolso', 'devolucao', 'desistir'],\n    resposta: \"Sentimos muito que queira cancelar. Seu atendimento foi priorizado junto à nossa equipe de retenção.\"\n  }\n};\n\nlet intencaoIdentificada = 'DUVIDA_GERAL';\nlet resposta = \"Mensagem recebida. Em breve retornaremos com todas as informações.\";\nlet confianca = 0.70;\nlet termosCasados = [];\n\nfor (const [intencao, config] of Object.entries(intencoes)) {\n  const matches = config.termos.filter(t => texto.includes(t));\n  if (matches.length > 0) {\n    intencaoIdentificada = intencao;\n    resposta = config.resposta;\n    termosCasados = matches;\n    confianca = Math.min(0.98, 0.75 + (matches.length * 0.1));\n    break;\n  }\n}\n\nreturn [{\n  json: {\n    usuario,\n    resposta,\n    mensagemOriginal,\n    intencao: intencaoIdentificada,\n    confianca,\n    termosCasados,\n    receivedAt,\n    processedAt: new Date().toISOString()\n  }\n}];"
+        "jsCode": "\nconst mensagem = $json.mensagemOriginal;\nconst body = {\n  model: \"gpt-4o-mini\",\n  temperature: 0.2,\n  response_format: { type: \"json_object\" },\n  messages: [\n    {\n      role: \"system\",\n      content: \"Voce e o motor de IA de triagem semantica de WhatsApp da PSA (Profissionais SA). Analise a mensagem do cliente e classifique com precisao em uma das 4 intencoes: SUPORTE_URGENTE (problemas, reclamacoes, urgencias, produto danificado, entrega atrasada), COMERCIAL_VENDAS (interesse em compra, precos, orcamentos, catalogo, planos), CANCELAMENTO (cancelar contrato, reembolso, estorno, desistir), DUVIDA_GERAL (outras duvidas e perguntas gerais). Responda EXCLUSIVAMENTE com JSON: {\\\"intencao\\\": string, \\\"confianca\\\": number, \\\"resumo\\\": string, \\\"resposta\\\": string}. O campo resposta deve ser uma mensagem empatica e profissional em portugues para enviar ao cliente.\"\n    },\n    {\n      role: \"user\",\n      content: mensagem\n    }\n  ]\n};\nreturn [{ json: { ...($json), openaiBody: JSON.stringify(body) } }];\n"
       },
-      "id": "node-ent-classifier",
-      "name": "Code - Classificador Semântico de Intenção",
+      "id": "node-ent-builder",
+      "name": "Code - Montar Request OpenAI",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         940,
-        180
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_OPENAI_API_KEY_HERE"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.openaiBody }}",
+        "options": {}
+      },
+      "id": "node-ent-openai",
+      "name": "HTTP Request - OpenAI GPT-4o-mini",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1180,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const httpResp = $input.first().json;\nlet aiResult = {};\ntry {\n  const raw = httpResp.choices[0].message.content;\n  aiResult = JSON.parse(raw);\n} catch(e) {\n  aiResult = { intencao: 'DUVIDA_GERAL', confianca: 0.5, resumo: 'Falha ao parsear IA', resposta: 'Mensagem recebida. Em breve entraremos em contato.' };\n}\n\nconst validado = $('Code - Validacao Defensiva').first().json;\n\nreturn [{ json: { usuario: validado.usuario, mensagemOriginal: validado.mensagemOriginal, resposta: aiResult.resposta, intencao: aiResult.intencao, confianca: aiResult.confianca, resumo: aiResult.resumo, motor: 'openai/gpt-4o-mini', receivedAt: validado.receivedAt, processedAt: new Date().toISOString() } }];"
+      },
+      "id": "node-ent-formatter",
+      "name": "Code - Formatar Resposta da IA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        160
       ]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({\n  status: 'success',\n  usuario: $json.usuario,\n  resposta: $json.resposta,\n  metadata: {\n    intencao: $json.intencao,\n    confianca: $json.confianca,\n    termosCasados: $json.termosCasados,\n    processadoEm: $json.processedAt\n  }\n}) }}",
+        "responseBody": "={{ JSON.stringify({ status: 'success', usuario: $json.usuario, resposta: $json.resposta, metadata: { intencao: $json.intencao, confianca: $json.confianca, resumo: $json.resumo, motor: $json.motor, processadoEm: $json.processedAt } }) }}",
         "options": {
           "responseCode": 200
         }
@@ -107,39 +153,39 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1200,
-        180
+        1700,
+        160
       ]
     }
   ],
   "connections": {
-    "Webhook - Ingestão WhatsApp": {
+    "Webhook - Ingestao WhatsApp": {
       "main": [
         [
           {
-            "node": "Code - Validação e Normalização Defensiva",
+            "node": "Code - Validacao Defensiva",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Code - Validação e Normalização Defensiva": {
+    "Code - Validacao Defensiva": {
       "main": [
         [
           {
-            "node": "IF - Payload Válido?",
+            "node": "IF - Payload Valido?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "IF - Payload Válido?": {
+    "IF - Payload Valido?": {
       "main": [
         [
           {
-            "node": "Code - Classificador Semântico de Intenção",
+            "node": "Code - Montar Request OpenAI",
             "type": "main",
             "index": 0
           }
@@ -153,7 +199,29 @@
         ]
       ]
     },
-    "Code - Classificador Semântico de Intenção": {
+    "Code - Montar Request OpenAI": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - OpenAI GPT-4o-mini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - OpenAI GPT-4o-mini": {
+      "main": [
+        [
+          {
+            "node": "Code - Formatar Resposta da IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Formatar Resposta da IA": {
       "main": [
         [
           {

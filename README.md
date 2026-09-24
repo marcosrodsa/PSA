@@ -185,17 +185,87 @@ Para facilitar a experimentação visual em tempo real sem necessidade de ferram
 
 ---
 
-## 🚀 Overdelivery: Workflow Enterprise AI
+## 🚀 Overdelivery: Workflow Enterprise AI com GPT-4o-mini
 
-Para demonstrar o potencial de expansão da solução em um ambiente corporativo de IA, disponibilizamos o workflow avançado em [`workflows/02_workflow_enterprise_ai.json`](./workflows/02_workflow_enterprise_ai.json):
+Para demonstrar o potencial de expansão da solução com **Inteligência Artificial real**, disponibilizamos o workflow avançado em [`workflows/02_workflow_enterprise_ai.json`](./workflows/02_workflow_enterprise_ai.json).
 
-1. **Validação de Schema com HTTP 400**: Rejeita requisições com dados faltantes ou tipos incorretos com mensagens claras de erro antes do processamento.
-2. **Motor de Classificação Semântica (Semantic Intent Engine)**: Classifica as mensagens em **4 intenções**:
-   - `SUPORTE_URGENTE` (palavras como *problema, defeito, erro, travou, socorro, ajuda*);
-   - `COMERCIAL_VENDAS` (*comprar, preço, orçamento, valor, produto*);
-   - `CANCELAMENTO` (*cancelar, estorno, devolução, reembolso*);
-   - `DUVIDA_GERAL` (fallback).
-3. **Score de Confiança e Metadados**: Retorna no payload de resposta a intenção detectada, o índice de confiança (`confianca: 0.95`) e timestamps de auditoria.
+> **🔴 Live:** `POST https://n8n.ulbrads.site/webhook/triagem-mensagem-enterprise`
+
+### Arquitetura Enterprise (8 nós)
+
+```mermaid
+graph LR
+    WH["📥 Webhook<br/>Ingestão WhatsApp"] --> VAL["🛡️ Code<br/>Validação Defensiva"]
+    VAL --> IF{"🔀 IF<br/>Payload Válido?"}
+    IF -- "False" --> E400["❌ Respond 400<br/>Bad Request"]
+    IF -- "True" --> BLD["⚙️ Code<br/>Montar Request OpenAI"]
+    BLD --> OAI["🤖 HTTP Request<br/>OpenAI GPT-4o-mini"]
+    OAI --> FMT["📊 Code<br/>Formatar Resposta da IA"]
+    FMT --> R200["✅ Respond 200<br/>JSON Estruturado"]
+
+    style WH fill:#1e293b,stroke:#3b82f6,color:#fff
+    style OAI fill:#1e293b,stroke:#10b981,color:#fff
+    style E400 fill:#1e293b,stroke:#ef4444,color:#fff
+    style R200 fill:#1e293b,stroke:#22c55e,color:#fff
+```
+
+### Diferencial: Classificação Semântica Real com LLM
+
+Ao contrário de filtros sintáticos por palavras-chave (que seriam `includes()`), este workflow usa **inferência real de linguagem** com o modelo **OpenAI GPT-4o-mini**:
+
+- O nó `Code - Montar Request OpenAI` constrói dinamicamente o payload para a API, incluindo a mensagem real do usuário.
+- O nó `HTTP Request - OpenAI GPT-4o-mini` chama `https://api.openai.com/v1/chat/completions` com `response_format: json_object` para output estruturado garantido.
+- O GPT-4o-mini classifica em **4 intenções** com score de confiança e gera uma resposta empática em português.
+
+### Exemplos de Resposta (Testados em Produção)
+
+| Mensagem | Intenção | Confiança | Motor |
+|:---------|:---------|:---------:|:------|
+| `"Minha encomenda não chegou, preciso de ajuda urgente!"` | `SUPORTE_URGENTE` | 0.95 | openai/gpt-4o-mini |
+| `"Quero saber o preço dos planos e fazer um orçamento"` | `COMERCIAL_VENDAS` | 0.95 | openai/gpt-4o-mini |
+| `"Quero cancelar meu contrato e ter meu dinheiro de volta"` | `CANCELAMENTO` | 0.95 | openai/gpt-4o-mini |
+| `{"from": "", "mensagem": ""}` | — | — | HTTP 400 Bad Request |
+
+### Payload de Resposta (200 OK)
+
+```json
+{
+  "status": "success",
+  "usuario": "5511999990000",
+  "resposta": "Olá! Lamentamos o inconveniente. Nossa equipe de suporte já foi acionada e entrará em contato o mais breve possível para resolver sua situação.",
+  "metadata": {
+    "intencao": "SUPORTE_URGENTE",
+    "confianca": 0.95,
+    "resumo": "Cliente relata não recebimento de encomenda e solicita ajuda urgente.",
+    "motor": "openai/gpt-4o-mini",
+    "processadoEm": "2026-09-24T18:44:15.000Z"
+  }
+}
+```
+
+### cURL Enterprise
+
+```bash
+# Teste 1 - SUPORTE_URGENTE
+curl -X POST https://n8n.ulbrads.site/webhook/triagem-mensagem-enterprise \
+  -H "Content-Type: application/json" \
+  -d '{"from": "5511999990000", "mensagem": "Minha encomenda nao chegou, preciso de ajuda urgente!"}'
+
+# Teste 2 - COMERCIAL_VENDAS
+curl -X POST https://n8n.ulbrads.site/webhook/triagem-mensagem-enterprise \
+  -H "Content-Type: application/json" \
+  -d '{"from": "5511888880000", "mensagem": "Quero saber o preco dos planos e fazer um orcamento"}'
+
+# Teste 3 - CANCELAMENTO
+curl -X POST https://n8n.ulbrads.site/webhook/triagem-mensagem-enterprise \
+  -H "Content-Type: application/json" \
+  -d '{"from": "5511777770000", "mensagem": "Quero cancelar meu contrato e ter meu dinheiro de volta"}'
+
+# Teste 4 - HTTP 400 (payload inválido)
+curl -X POST https://n8n.ulbrads.site/webhook/triagem-mensagem-enterprise \
+  -H "Content-Type: application/json" \
+  -d '{"from": "", "mensagem": ""}'
+```
 
 ---
 
