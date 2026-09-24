@@ -344,10 +344,10 @@
       font-weight: 700;
     }
 
-    .intent-SUPORTE_URGENTE  { background: #ef444420; color: #fca5a5; border: 1px solid #ef444430; }
-    .intent-COMERCIAL_VENDAS { background: #f5920020; color: #fdba74; border: 1px solid #f5920030; }
-    .intent-CANCELAMENTO     { background: #eab30820; color: #fde68a; border: 1px solid #eab30830; }
-    .intent-DUVIDA_GERAL     { background: #3b82f620; color: #93c5fd; border: 1px solid #3b82f630; }
+    .intent-B2B_CONTRATAR_PALESTRANTE { background: #3b82f625; color: #93c5fd; border: 1px solid #3b82f640; }
+    .intent-B2C_QUERO_SER_PALESTRANTE { background: #f59e0b25; color: #fcd34d; border: 1px solid #f59e0b40; }
+    .intent-SUPORTE_EVENTO_URGENTE    { background: #ef444425; color: #fca5a5; border: 1px solid #ef444440; }
+    .intent-INSTITUCIONAL_DUVIDAS     { background: #a855f725; color: #d8b4fe; border: 1px solid #a855f740; }
 
     /* Confidence Bar */
     .conf-bar-wrap {
@@ -478,11 +478,11 @@
       <div class="mode-card" id="cardEnterprise" onclick="setMode('enterprise')">
         <div class="active-indicator"></div>
         <div class="mode-badge badge-enterprise">🚀 Overdelivery Enterprise</div>
-        <h2>Enterprise AI (GPT-4o-mini)</h2>
-        <p>Classificação semântica real via <strong>LLM</strong>. Identifica intenção, gera resposta empática e retorna metadados de IA.</p>
+        <h2>Enterprise AI — Ecossistema PSA</h2>
+        <p>Classificação semântica via <strong>GPT-4o-mini</strong> especializada em <strong>B2B</strong> (Contratar Palestrantes) e <strong>B2C</strong> (The Best School / Imersão).</p>
         <div class="mode-detail detail-enterprise">
-          <span>🧠 Motor: OpenAI GPT-4o-mini (inferência real)</span>
-          <span>📊 Retorna: intenção, confiança, resumo e resposta</span>
+          <span>🧠 Motor: OpenAI GPT-4o-mini (curadoria PSA)</span>
+          <span>📊 Retorna: intenção B2B/B2C, confiança e resposta</span>
           <span>🔗 Endpoint: /webhook/triagem-mensagem-enterprise</span>
         </div>
       </div>
@@ -555,18 +555,18 @@
       },
       enterprise: {
         url: 'https://n8n.ulbrads.site/webhook/triagem-mensagem-enterprise',
-        title: 'PSA — Enterprise AI (GPT-4o-mini)',
-        status: 'online · OpenAI GPT-4o-mini · classificação semântica',
-        badge: '🧠 GPT-4o-mini',
-        avatar: '🧠',
+        title: 'PSA — Enterprise AI (Curadoria & Palestras)',
+        status: 'online · Curadoria Profissionais S.A. · GPT-4o-mini',
+        badge: '🧠 PSA AI Engine',
+        avatar: '🎤',
         presets: [
-          { label: '🔴 Suporte Urgente',   text: 'Meu produto chegou danificado, preciso de troca urgente!' },
-          { label: '🟠 Comercial/Vendas',  text: 'Quero saber o preço dos planos e fazer um orçamento'      },
-          { label: '🟡 Cancelamento',      text: 'Quero cancelar meu contrato e pedir reembolso'            },
-          { label: '🔵 Dúvida Geral',      text: 'Qual o horário de atendimento de vocês?'                  },
+          { label: '🏢 Contratar Palestrante (B2B)', text: 'Preciso de um palestrante de Inteligência Artificial para a convenção anual da nossa empresa em novembro.' },
+          { label: '🎤 Quero Ser Palestrante (B2C)', text: 'Sou executivo e quero me tornar palestrante profissional, como funciona a The Best School e a mentoria da PSA?' },
+          { label: '🚨 Urgência no Evento', text: 'Urgente: o palestrante do evento corporativo de amanhã cedo teve um imprevisto, precisamos alinhar o suporte técnico agora!' },
+          { label: 'ℹ️ Institucional / Dúvidas', text: 'Olá, onde posso consultar os artigos do blog e o link para a área de membros da PSA?' },
         ],
         mode: 'enterprise',
-        welcomeExtra: '🧠 <strong>Modo Enterprise</strong>: LLM real — a IA classifica semanticamente a intenção e gera resposta empática.',
+        welcomeExtra: '🧠 <strong>Modo Enterprise PSA</strong>: Classificação semântica em tempo real para os modelos <strong>B2B</strong> (Contratação para Eventos) e <strong>B2C</strong> (The Best School / Formação de Palestrantes).',
       }
     };
 

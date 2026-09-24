@@ -47,9 +47,9 @@ curl -X POST https://n8n.ulbrads.site/webhook/triagem-mensagem \
 ```bash
 curl -X POST https://n8n.ulbrads.site/webhook/triagem-mensagem-enterprise \
   -H "Content-Type: application/json" \
-  -d '{"from": "5511999990000", "mensagem": "Meu produto chegou danificado, preciso de troca urgente!"}'
+  -d '{"from": "5511999990000", "mensagem": "Preciso de um palestrante sobre IA para nossa convenção em novembro"}'
 ```
-> **Resposta da IA:** Classifica a intenção como `SUPORTE_URGENTE`, gera uma resposta empática em tempo real e retorna métricas de confiança e resumo.
+> **Resposta da IA:** Classifica a intenção como `B2B_CONTRATAR_PALESTRANTE`, gera uma resposta empática e profissional representando a marca PSA, e retorna métricas de confiança e resumo.
 
 ---
 
@@ -129,13 +129,28 @@ O JSON exportado deste fluxo está disponível em:
 
 ### Por que criei um segundo fluxo?
 Na prática de atendimento ao cliente, buscar apenas a palavra `"ajuda"` é frágil:
-- Clientes com problemas urgentes costumam escrever: *"meu produto veio quebrado"*, *"não consigo acessar minha conta"* ou *"socorro, preciso de suporte"*.
-- Clientes comerciais perguntam: *"quanto custa a licença corporativa?"* ou *"quero fechar uma proposta"*.
-- Clientes insatisfeitos dizem: *"quero estorno do cartão e cancelar agora"*.
+- Um RH que quer contratar um palestrante sobre IA para a convenção anual não vai digitar "ajuda" — vai perguntar *"quero cotar um palestrante para nosso evento de liderança"*.
+- Um especialista que quer entrar para o casting da PSA vai escrever *"como posso me tornar palestrante de vocês?"*.
+- Um organizador de evento que tem crise de logística na véspera vai mandar *"o palestrante de amanhã cancelou, o que fazemos?"*.
 
-Nenhum desses casos contém a palavra literal `"ajuda"`, mas todos precisam de roteamento prioritário.
+Nenhum desses casos contém a palavra literal `"ajuda"`, mas todos exigem roteamento urgente e correto.
 
-Por isso, construí o **PSA - Triagem Enterprise AI**, conectando o n8n diretamente à **OpenAI (GPT-4o-mini)** para inferência semântica em tempo real.
+Por isso, construí o **PSA - Triagem Enterprise AI**, conectando o n8n diretamente à **OpenAI (GPT-4o-mini)** com um System Prompt customizado para o modelo de negócio real da Profissionais S.A.
+
+### IA ajustada para o negócio da PSA
+
+A PSA opera em dois grandes mercados:
+- **B2B (Empresas, RHs e Organizadores):** Contratação de palestrantes para convenções, SIPATs, eventos corporativos de liderança, inovação, vendas e IA.
+- **B2C (The Best School / Desenvolvimento de Palestrantes):** Formação de carreira para especialistas, autores e executivos que querem subir aos palcos — via imersões e programas de mentoria.
+
+O System Prompt da OpenAI ensina a IA exatamente isso, classificando cada mensagem nas **4 intenções reais do negócio**:
+
+| Intenção | Quando usar | Exemplo de mensagem |
+|:---|:---|:---|
+| `B2B_CONTRATAR_PALESTRANTE` | Empresa buscando palestrante, orçamento, catálogo | *"Preciso de um palestrante sobre IA para nossa convenção de novembro"* |
+| `B2C_QUERO_SER_PALESTRANTE` | Especialista querendo virar palestrante, The Best School | *"Como faço para ser palestrante de vocês?"* |
+| `SUPORTE_EVENTO_URGENTE` | Crise operacional de evento hoje/amanhã, logística, rider | *"O evento é amanhã e o palestrante cancelou, me ajudem!"* |
+| `INSTITUCIONAL_DUVIDAS` | Dúvidas gerais, contatos, blog, área de login | *"Qual o telefone de vocês?"* |
 
 ### Arquitetura Enterprise
 
@@ -155,22 +170,18 @@ graph LR
 
 ### Principais Diferenciais Técnicos:
 1. **Validação Defensiva (400 Bad Request):** Se a requisição vier sem o telefone ou com mensagem vazia, o webhook rejeita imediatamente com HTTP 400 e JSON explicativo, protegendo os custos de chamadas de LLM.
-2. **Classificação Semântica em 4 Categorias:**
-   - `SUPORTE_URGENTE` (reclamações, falhas, defeitos, urgências)
-   - `COMERCIAL_VENDAS` (preços, contratações, orçamentos, planos)
-   - `CANCELAMENTO` (estorno, encerramento de contrato, devolução)
-   - `DUVIDA_GERAL` (dúvidas institucionais, horários, perguntas comuns)
-3. **Respostas Empáticas Contextuais:** Em vez de uma frase engessada, a LLM gera uma resposta personalizada para a situação do cliente.
-4. **Metadados de IA (Observabilidade):** O webhook retorna a intenção categorizada, grau de confiança da IA (ex: 95%), resumo executivo e modelo utilizado:
+2. **Classificação Semântica nas 4 Intenções PSA:** A IA entende linguagem natural e roteia corretamente mesmo quando o cliente não usa palavras-chave exatas.
+3. **Respostas Empáticas com Identidade da Marca:** Em vez de uma frase engessada, a LLM gera uma resposta personalizada, profissional e acolhedora representando a PSA.
+4. **Metadados de IA (Observabilidade):** O webhook retorna a intenção, grau de confiança, resumo executivo e modelo utilizado:
 
 ```json
 {
   "usuario": "5511999990000",
-  "resposta": "Lamentamos muito pelo inconveniente com o seu produto. Vamos resolver isso o mais rápido possível...",
+  "resposta": "Olá! Que ótimo! A PSA tem uma curadoria incrível de especialistas em IA para eventos corporativos. Pode me contar mais sobre o seu evento — data, número de participantes e tema central? Vou te apresentar os perfis mais adequados!",
   "metadata": {
-    "intencao": "SUPORTE_URGENTE",
-    "confianca": 0.95,
-    "resumo": "Produto chegou danificado e cliente solicita troca urgente.",
+    "intencao": "B2B_CONTRATAR_PALESTRANTE",
+    "confianca": 0.97,
+    "resumo": "Empresa buscando palestrante sobre IA para convenção corporativa em novembro.",
     "motor": "openai/gpt-4o-mini"
   }
 }

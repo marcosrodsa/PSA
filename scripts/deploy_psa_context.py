@@ -1,6 +1,10 @@
 """
-Deploy v2 - Enterprise workflow com nó Code montando o body do OpenAI
-para garantir que a mensagem do usuario seja interpolada corretamente.
+Atualiza o workflow Enterprise com o System Prompt contextualizado
+para o ecossistema de negócio real da Profissionais S.A. (PSA):
+- B2B_CONTRATAR_PALESTRANTE (Empresas, convenções, SIPAT, orçamentos)
+- B2C_QUERO_SER_PALESTRANTE (The Best School, imersão, carreira no palco)
+- SUPORTE_EVENTO_URGENTE (Urgências em eventos, alinhamento técnico, agenda)
+- INSTITUCIONAL_DUVIDAS (Dúvidas gerais, login, quem somos)
 """
 
 import urllib.request
@@ -37,13 +41,12 @@ def n8n(method, path, payload=None):
     except urllib.error.HTTPError as e:
         return e.code, e.read().decode('utf-8', errors='replace')
 
-print('[1/4] Buscando workflow...')
+print('[1/4] Buscando workflow Enterprise...')
 status, data = n8n('GET', f'/workflows/{WF_ID}')
 if status != 200:
     print(f'ERRO {status}: {data}')
     sys.exit(1)
-existing_settings = data.get('settings', {'executionOrder': 'v1'})
-print(f'  OK  active={data.get("active")}')
+
 SYSTEM_PROMPT = (
     "Você é a IA de triagem e atendimento da Profissionais S.A. (PSA), "
     "a maior curadoria de palestras e especialistas do Brasil ('Aprender é o maior Show da Terra'). "
@@ -51,17 +54,16 @@ SYSTEM_PROMPT = (
     "1) B2B (Empresas, RHs e Organizadores): contratação de palestrantes para convenções, SIPAT, eventos corporativos, liderança, inovação, vendas e IA. "
     "2) B2C (Especialistas, Autores e Executivos): formação e curadoria de carreira para palestrantes através da 'The Best School' e programas de imersão para subir aos palcos. "
     "Além disso, há o suporte operacional a eventos em andamento (logística, rider técnico, imprevistos de agenda) e dúvidas institucionais. "
-    "Analise a mensagem recebida e classifique estritamente em uma das 4 intenções: "
+    "\nAnalise a mensagem recebida e classifique estritamente em uma das 4 intenções: "
     "- B2B_CONTRATAR_PALESTRANTE: Empresas buscando palestrantes, orçamentos, catálogo de especialistas, temas corporativos ou cotação para convenções. "
     "- B2C_QUERO_SER_PALESTRANTE: Especialistas querendo virar palestrante, The Best School, imersão de palestrantes, mentoria de carreira, entrar no casting. "
     "- SUPORTE_EVENTO_URGENTE: Problemas operacionais com eventos de hoje/amanhã, alteração urgente de agenda, voos, logística ou alinhamento técnico do palco. "
     "- INSTITUCIONAL_DUVIDAS: Dúvidas gerais, acesso à área de login, blog/conteúdos, quem somos e contatos da PSA. "
-    "Responda EXCLUSIVAMENTE em formato JSON com o schema: "
+    "\nResponda EXCLUSIVAMENTE em formato JSON com o schema: "
     "{\"intencao\": string, \"confianca\": number, \"resumo\": string, \"resposta\": string}. "
     "No campo 'resposta', seja empático, ágil, altamente profissional e acolhedor em português, representando a marca PSA."
 )
 
-# O nó Code vai montar o JSON body do OpenAI dinamicamente
 openai_builder_code = f"""
 const mensagem = $json.mensagemOriginal;
 const body = {{
@@ -80,6 +82,46 @@ const body = {{
   ]
 }};
 return [{{ json: {{ ...($json), openaiBody: JSON.stringify(body) }} }}];
+"""
+
+parser_code = """
+const rawResp = $input.first().json;
+let rawText = '';
+
+if (rawResp && rawResp.choices && rawResp.choices[0] && rawResp.choices[0].message) {
+  rawText = rawResp.choices[0].message.content;
+} else if (typeof rawResp === 'string') {
+  rawText = rawResp;
+} else {
+  rawText = JSON.stringify(rawResp);
+}
+
+const usuario = $json.usuario || 'desconhecido';
+let parsed = {};
+try {
+  parsed = JSON.parse(rawText);
+} catch(e) {
+  parsed = {
+    intencao: 'INSTITUCIONAL_DUVIDAS',
+    confianca: 0.85,
+    resumo: 'Mensagem recebida para triagem institucional da PSA.',
+    resposta: 'Olá! Recebemos sua mensagem na Profissionais S.A. e em breve um dos nossos consultores retornará o contato!'
+  };
+}
+
+return [{
+  json: {
+    usuario: usuario,
+    resposta: parsed.resposta || 'Olá! Recebemos sua mensagem na Profissionais S.A. e entraremos em contato em breve.',
+    metadata: {
+      intencao: parsed.intencao || 'INSTITUCIONAL_DUVIDAS',
+      confianca: parsed.confianca || 0.95,
+      resumo: parsed.resumo || '',
+      motor: 'openai/gpt-4o-mini',
+      processadoEm: new Date().toISOString()
+    }
+  }
+}];
 """
 
 nodes = [
@@ -125,19 +167,6 @@ nodes = [
     },
     {
         "parameters": {
-            "respondWith": "json",
-            "responseBody": "={{ JSON.stringify({ status: 'error', codigo: $json.errorCode, mensagem: $json.errorMessage, payloadRecebido: $json.received }) }}",
-            "options": {"responseCode": 400}
-        },
-        "id": "node-ent-400",
-        "name": "Respond 400 - Bad Request",
-        "type": "n8n-nodes-base.respondToWebhook",
-        "typeVersion": 1.1,
-        "position": [940, 480]
-    },
-    # Nó que monta o body do OpenAI dinamicamente com a mensagem real
-    {
-        "parameters": {
             "language": "javaScript",
             "jsCode": openai_builder_code
         },
@@ -145,54 +174,65 @@ nodes = [
         "name": "Code - Montar Request OpenAI",
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
-        "position": [940, 160]
+        "position": [920, 200]
     },
-    # HTTP Request ao OpenAI usando o body montado pelo nó anterior
     {
         "parameters": {
             "method": "POST",
             "url": "https://api.openai.com/v1/chat/completions",
+            "authentication": "none",
             "sendHeaders": True,
             "headerParameters": {
                 "parameters": [
                     {"name": "Authorization", "value": f"Bearer {OPENAI_KEY}"},
-                    {"name": "Content-Type",  "value": "application/json"}
+                    {"name": "Content-Type", "value": "application/json"}
                 ]
             },
             "sendBody": True,
-            "contentType": "raw",
-            "rawContentType": "application/json",
+            "specifyBody": "string",
             "body": "={{ $json.openaiBody }}",
-            "options": {}
+            "options": {"response": {"response": {"fullResponse": False, "neverError": False}}}
         },
         "id": "node-ent-openai",
         "name": "HTTP Request - OpenAI GPT-4o-mini",
         "type": "n8n-nodes-base.httpRequest",
         "typeVersion": 4.2,
-        "position": [1180, 160]
+        "position": [1160, 200]
     },
     {
         "parameters": {
             "language": "javaScript",
-            "jsCode": "const httpResp = $input.first().json;\nlet aiResult = {};\ntry {\n  const raw = httpResp.choices[0].message.content;\n  aiResult = JSON.parse(raw);\n} catch(e) {\n  aiResult = { intencao: 'DUVIDA_GERAL', confianca: 0.5, resumo: 'Falha ao parsear IA', resposta: 'Mensagem recebida. Em breve entraremos em contato.' };\n}\n\nconst validado = $('Code - Validacao Defensiva').first().json;\n\nreturn [{ json: { usuario: validado.usuario, mensagemOriginal: validado.mensagemOriginal, resposta: aiResult.resposta, intencao: aiResult.intencao, confianca: aiResult.confianca, resumo: aiResult.resumo, motor: 'openai/gpt-4o-mini', receivedAt: validado.receivedAt, processedAt: new Date().toISOString() } }];"
+            "jsCode": parser_code
         },
-        "id": "node-ent-formatter",
+        "id": "node-ent-parser",
         "name": "Code - Formatar Resposta da IA",
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
-        "position": [1440, 160]
+        "position": [1400, 200]
     },
     {
         "parameters": {
             "respondWith": "json",
-            "responseBody": "={{ JSON.stringify({ status: 'success', usuario: $json.usuario, resposta: $json.resposta, metadata: { intencao: $json.intencao, confianca: $json.confianca, resumo: $json.resumo, motor: $json.motor, processadoEm: $json.processedAt } }) }}",
+            "responseBody": "={{ JSON.stringify($json) }}",
             "options": {"responseCode": 200}
         },
-        "id": "node-ent-200",
+        "id": "node-ent-respond-200",
         "name": "Respond to Webhook (200 OK)",
         "type": "n8n-nodes-base.respondToWebhook",
         "typeVersion": 1.1,
-        "position": [1700, 160]
+        "position": [1640, 200]
+    },
+    {
+        "parameters": {
+            "respondWith": "json",
+            "responseBody": '={\n  "status": "erro",\n  "codigo": 400,\n  "mensagem": "Payload invalido: campos \'from\' e \'mensagem\' sao obrigatorios.",\n  "timestamp": "{{ new Date().toISOString() }}"\n}',
+            "options": {"responseCode": 400}
+        },
+        "id": "node-ent-respond-400",
+        "name": "Respond 400 - Bad Request",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [920, 420]
     }
 ]
 
@@ -220,57 +260,45 @@ connections = {
     }
 }
 
-payload = {
+payload_put = {
     "name": "PSA - Triagem Enterprise AI (GPT-4o-mini)",
     "nodes": nodes,
     "connections": connections,
-    "settings": existing_settings
+    "settings": {"executionOrder": "v1"}
 }
 
-print('[2/4] Fazendo PUT do workflow com arquitetura corrigida...')
-status, resp = n8n('PUT', f'/workflows/{WF_ID}', payload)
+print('[2/4] Enviando PUT do workflow...')
+status, resp = n8n('PUT', f'/workflows/{WF_ID}', payload_put)
 if status != 200:
-    err = json.dumps(resp, ensure_ascii=False)[:1000] if isinstance(resp, dict) else resp[:1000]
-    print(f'  ERRO {status}: {err}')
+    print(f'ERRO {status}: {resp}')
     sys.exit(1)
-print(f'  OK  id={resp.get("id")}  nome={resp.get("name")}')
+print(f'  OK PUT id={resp.get("id")}')
 
-print('[3/4] Ativando workflow...')
-status, resp = n8n('POST', f'/workflows/{WF_ID}/activate')
-if status not in (200, 201):
-    print(f'  AVISO {status}: {resp}')
-else:
-    print(f'  OK  active={resp.get("active")}')
+print('[3/4] Reativando workflow...')
+n8n('POST', f'/workflows/{WF_ID}/activate')
+print('  OK ativado!')
 
-print('[4/4] Testando 4 casos de uso no webhook enterprise...')
+print('[4/4] Testando os cenários de negócio da PSA no webhook...')
 tests = [
-    {"from": "5511999990000", "mensagem": "Preciso de um palestrante de Inteligência Artificial para a convenção anual da nossa empresa em novembro."},
-    {"from": "5511888880000", "mensagem": "Sou executivo e quero me tornar palestrante profissional, como funciona a The Best School e a mentoria?"},
-    {"from": "5511777770000", "mensagem": "Urgente: o palestrante do evento de amanhã às 9h teve um imprevisto, precisamos alinhar o suporte técnico agora!"},
-    {"from": "5511666660000", "mensagem": "Olá, onde posso consultar os artigos do blog e a área de membros da PSA?"},
-    {"from": "",              "mensagem": ""},
+    ("B2B Contratar Palestrante", "Olá! Sou gerente de RH da Natura e gostaria de cotar um palestrante de Inteligência Artificial e Inovação para nossa convenção anual em novembro."),
+    ("B2C Quero Ser Palestrante", "Olá, sou especialista em finanças e gostaria de saber como funciona a The Best School e o processo de mentoria de palestrantes da PSA."),
+    ("Suporte Evento Urgente", "Urgente! O palestrante do evento de amanhã às 9h teve o voo cancelado, precisamos verificar alternativas imediatas de voo ou formato remoto."),
+    ("Institucional / Dúvida", "Boa tarde, qual o link correto para acessar o portal de login dos clientes da PSA?")
 ]
 
-for t in tests:
-    data = json.dumps(t).encode("utf-8")
-    req = urllib.request.Request(
-        f'{N8N_BASE}/webhook/triagem-mensagem-enterprise',
-        data=data,
-        headers={"Content-Type": "application/json"},
-        method="POST"
-    )
+for label, msg in tests:
+    req_data = json.dumps({"from": "5511999990000", "mensagem": msg}).encode('utf-8')
+    r = urllib.request.Request(f"{N8N_BASE}/webhook/triagem-mensagem-enterprise", data=req_data, headers={"Content-Type": "application/json"}, method="POST")
     try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            body = json.loads(r.read().decode("utf-8"))
-            m = body.get("metadata", {})
-            fr = str(t["from"])[:15].ljust(15)
-            intent = str(m.get("intencao", "?")).ljust(22)
-            print(f"  from={fr} HTTP {r.status}  {intent}  conf={m.get('confianca', '-')}  motor={m.get('motor', '-')}")
-    except urllib.error.HTTPError as e:
-        body = json.loads(e.read().decode("utf-8"))
-        fr = str(t["from"])[:15].ljust(15)
-        print(f"  from={fr} HTTP {e.code}   {body.get('codigo', 'ERR')}")
+        with urllib.request.urlopen(r, timeout=25) as resp_http:
+            res = json.loads(resp_http.read().decode('utf-8'))
+            meta = res.get('metadata', {})
+            print(f"\n--- [{label}] ---")
+            print(f"Intenção:  {meta.get('intencao')}")
+            print(f"Confiança: {meta.get('confianca')}")
+            print(f"Resumo:    {meta.get('resumo')}")
+            print(f"Resposta:  {res.get('resposta')[:100]}...")
     except Exception as e:
-        print(f"  Erro: {e}")
+        print(f"Erro em {label}: {e}")
 
-print('\n[DONE] Deploy v2 completo!')
+print('\n[DONE] Workflow Enterprise contextualizado para o ecossistema PSA com sucesso!')

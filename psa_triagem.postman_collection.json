@@ -167,7 +167,7 @@
       "response": []
     },
     {
-      "name": "04 - Enterprise AI: Suporte Urgente (GPT-4o-mini)",
+      "name": "04 - Enterprise AI: B2B Contratar Palestrante (GPT-4o-mini)",
       "event": [
         {
           "listen": "test",
@@ -177,13 +177,121 @@
               "    pm.response.to.have.status(200);",
               "});",
               "",
-              "pm.test(\"Deve classificar como SUPORTE_URGENTE\", function () {",
+              "pm.test(\"Deve classificar como B2B_CONTRATAR_PALESTRANTE\", function () {",
               "    var jsonData = pm.response.json();",
-              "    pm.expect(jsonData.metadata.intencao).to.eql(\"SUPORTE_URGENTE\");",
+              "    pm.expect(jsonData.metadata.intencao).to.eql(\"B2B_CONTRATAR_PALESTRANTE\");",
               "    pm.expect(jsonData.metadata.confianca).to.be.above(0.7);",
               "});",
               "",
-              "pm.test(\"Deve conter resposta empática e motor OpenAI\", function () {",
+              "pm.test(\"Deve conter resposta empática com identidade PSA e motor OpenAI\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.resposta).to.be.a(\"string\");",
+              "    pm.expect(jsonData.resposta.length).to.be.above(20);",
+              "    pm.expect(jsonData.metadata.motor).to.eql(\"openai/gpt-4o-mini\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"from\": \"5511999990000\",\n  \"mensagem\": \"Ol\\u00e1, sou do RH da empresa Acme. Preciso contratar um palestrante sobre Intelig\\u00eancia Artificial para nossa conven\\u00e7\\u00e3o anual em novembro. Quais especialistas voc\\u00eas t\\u00eam?\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/webhook/triagem-mensagem-enterprise",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "webhook",
+            "triagem-mensagem-enterprise"
+          ]
+        },
+        "description": "Simula empresa (B2B) buscando palestrante sobre IA para evento corporativo. Deve classificar como B2B_CONTRATAR_PALESTRANTE."
+      },
+      "response": []
+    },
+    {
+      "name": "05 - Enterprise AI: B2C Quero Ser Palestrante (GPT-4o-mini)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code deve ser 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Deve classificar como B2C_QUERO_SER_PALESTRANTE\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.metadata.intencao).to.eql(\"B2C_QUERO_SER_PALESTRANTE\");",
+              "    pm.expect(jsonData.metadata.confianca).to.be.above(0.7);",
+              "});",
+              "",
+              "pm.test(\"Deve conter resposta acolhedora da PSA e motor OpenAI\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.resposta).to.be.a(\"string\");",
+              "    pm.expect(jsonData.resposta.length).to.be.above(20);",
+              "    pm.expect(jsonData.metadata.motor).to.eql(\"openai/gpt-4o-mini\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"from\": \"5521988880000\",\n  \"mensagem\": \"Ol\\u00e1! Sou consultora de RH h\\u00e1 15 anos e gostaria de me tornar palestrante. Como funciona a The Best School e o processo de cadastro na PSA?\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/webhook/triagem-mensagem-enterprise",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "webhook",
+            "triagem-mensagem-enterprise"
+          ]
+        },
+        "description": "Simula especialista (B2C) querendo virar palestrante pela PSA/The Best School. Deve classificar como B2C_QUERO_SER_PALESTRANTE."
+      },
+      "response": []
+    },
+    {
+      "name": "06 - Enterprise AI: Suporte Urgente Evento Amanha (GPT-4o-mini)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code deve ser 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Deve classificar como SUPORTE_EVENTO_URGENTE\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.metadata.intencao).to.eql(\"SUPORTE_EVENTO_URGENTE\");",
+              "    pm.expect(jsonData.metadata.confianca).to.be.above(0.7);",
+              "});",
+              "",
+              "pm.test(\"Deve conter resposta urgente e motor OpenAI\", function () {",
               "    var jsonData = pm.response.json();",
               "    pm.expect(jsonData.resposta).to.be.a(\"string\");",
               "    pm.expect(jsonData.metadata.motor).to.eql(\"openai/gpt-4o-mini\");",
@@ -203,7 +311,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"from\": \"5511999990000\",\n  \"mensagem\": \"Meu produto chegou quebrado, preciso de troca urgente!\"\n}"
+          "raw": "{\n  \"from\": \"5511966660000\",\n  \"mensagem\": \"Urg\\u00eante! O evento corporativo \\u00e9 amanh\\u00e3 e nosso palestrante acabou de cancelar. Precisamos de uma substitui\\u00e7\\u00e3o imediata, pref algu\\u00e9m de SP que fale sobre lideran\\u00e7a.\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/webhook/triagem-mensagem-enterprise",
@@ -215,12 +323,12 @@
             "triagem-mensagem-enterprise"
           ]
         },
-        "description": "Envia mensagem urgente para classificação semântica com OpenAI GPT-4o-mini."
+        "description": "Simula crise operacional de evento: palestrante cancelou na v\u00e9spera. Deve classificar como SUPORTE_EVENTO_URGENTE."
       },
       "response": []
     },
     {
-      "name": "05 - Enterprise AI: Validação Defensiva (400 Bad Request)",
+      "name": "07 - Enterprise AI: Validacao Defensiva (400 Bad Request)",
       "event": [
         {
           "listen": "test",
@@ -262,7 +370,7 @@
             "triagem-mensagem-enterprise"
           ]
         },
-        "description": "Valida tratamento de erro defensivo quando o payload é vazio ou incompleto."
+        "description": "Valida tratamento de erro defensivo quando o payload \u00e9 vazio ou incompleto."
       },
       "response": []
     }
