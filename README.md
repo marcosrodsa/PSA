@@ -15,9 +15,11 @@ Ambos os fluxos estão **ativos em produção** e prontos para teste imediato.
 Você pode testar a solução de três formas diferentes:
 
 ### 1. Simulador Web Interativo (Sem instalar nada)
-Criamos um simulador visual no estilo WhatsApp Web que permite alternar entre o **Modo Oficial** e o **Modo Enterprise AI** com um clique:
-- Abra o arquivo [`demo.html`](./demo.html) direto no seu navegador (basta dar duplo clique), ou
-- Acesse via GitHub Pages: [marcosrodsa.github.io/PSA](https://marcosrodsa.github.io/PSA)
+Criamos um simulador visual no estilo WhatsApp Web que permite testar tanto o **Modo Oficial** quanto o **Modo Enterprise AI** direto no navegador:
+
+👉 **[Abrir Simulador Online (GitHub Pages)](https://marcosrodsa.github.io/PSA/)**
+
+*(Alternativamente, se clonar o projeto na sua máquina, basta dar um duplo clique no arquivo `demo.html` no seu explorador de arquivos).*
 
 ![Simulador Interativo](./screenshots/simulador_demo_enterprise.jpg)
 
