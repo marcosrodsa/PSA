@@ -1,0 +1,219 @@
+{
+  "name": "PSA - Triagem de Mensagens WhatsApp",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "triagem-mensagem",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook",
+      "name": "Webhook - Receber Mensagem",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "psa-triagem-webhook"
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// BÔNUS: Nó Code em JavaScript\n// Extrai os campos do payload e normaliza o texto para minúsculas\nconst payload = $input.first().json.body || $input.first().json;\n\nconst usuario = payload.from;\nconst texto = payload.mensagem.toLowerCase();\n\nreturn [{ json: { usuario, texto } }];"
+      },
+      "id": "node-code-extrair",
+      "name": "Code - Extrair e Normalizar Dados",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-ajuda",
+              "leftValue": "={{ $json.texto }}",
+              "rightValue": "ajuda",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-if-classificar",
+      "name": "IF - Contém 'ajuda'?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "assign-resposta-true",
+              "name": "resposta",
+              "value": "Olá! Vou te ajudar agora mesmo.",
+              "type": "string"
+            },
+            {
+              "id": "assign-usuario-true",
+              "name": "usuario",
+              "value": "={{ $('Code - Extrair e Normalizar Dados').first().json.usuario }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-set-resposta-ajuda",
+      "name": "Set - Resposta: Ajuda",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [900, 180]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "assign-resposta-false",
+              "name": "resposta",
+              "value": "Mensagem recebida. Em breve retornaremos.",
+              "type": "string"
+            },
+            {
+              "id": "assign-usuario-false",
+              "name": "usuario",
+              "value": "={{ $('Code - Extrair e Normalizar Dados').first().json.usuario }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-set-resposta-padrao",
+      "name": "Set - Resposta: Padrão",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [900, 420]
+    },
+    {
+      "parameters": {
+        "mode": "append",
+        "options": {}
+      },
+      "id": "node-merge",
+      "name": "Merge - Unificar Respostas",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ usuario: $json.usuario, resposta: $json.resposta }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "node-respond-webhook",
+      "name": "Respond to Webhook - Retornar Resposta",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1340, 300]
+    }
+  ],
+  "connections": {
+    "Webhook - Receber Mensagem": {
+      "main": [
+        [
+          {
+            "node": "Code - Extrair e Normalizar Dados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Extrair e Normalizar Dados": {
+      "main": [
+        [
+          {
+            "node": "IF - Contém 'ajuda'?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Contém 'ajuda'?": {
+      "main": [
+        [
+          {
+            "node": "Set - Resposta: Ajuda",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set - Resposta: Padrão",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Resposta: Ajuda": {
+      "main": [
+        [
+          {
+            "node": "Merge - Unificar Respostas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Resposta: Padrão": {
+      "main": [
+        [
+          {
+            "node": "Merge - Unificar Respostas",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge - Unificar Respostas": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook - Retornar Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [{ "name": "PSA" }],
+  "triggerCount": 1,
+  "versionId": "1"
+}

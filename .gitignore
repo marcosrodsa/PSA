@@ -1,0 +1,8 @@
+# Ignorar o arquivo de variáveis de ambiente (não subir credenciais para o Git!)
+.env
+
+# Dependências
+node_modules/
+
+# Logs
+*.log
