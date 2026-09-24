@@ -12,31 +12,36 @@
       "name": "Webhook - Ingestão WhatsApp",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [200, 340],
+      "position": [
+        200,
+        300
+      ],
       "webhookId": "psa-triagem-enterprise-webhook"
     },
     {
       "parameters": {
         "language": "javaScript",
-        "jsCode": "// ==========================================================================\n// ENGENHARIA DEFENSIVA: Validação de Schema, Sanitização e Normalização NLP\n// ==========================================================================\nconst rawInput = $input.first().json.body || $input.first().json || {};\n\nconst rawFrom = rawInput.from;\nconst rawMensagem = rawInput.mensagem;\n\n// 1. Validação de presença dos campos obrigatórios\nif (!rawFrom || !rawMensagem || typeof rawMensagem !== 'string' || rawMensagem.trim().length === 0) {\n  return [{\n    json: {\n      isValid: false,\n      errorCode: 'INVALID_PAYLOAD',\n      errorMessage: \"Os campos 'from' (telefone/ID) e 'mensagem' (texto não vazio) são obrigatórios.\",\n      received: rawInput\n    }\n  }];\n}\n\n// 2. Sanitização de telefone (apenas números)\nconst usuario = String(rawFrom).replace(/\\D/g, '') || String(rawFrom).trim();\n\n// 3. Pipeline de Normalização NLP (remoção de acentos/diacríticos, trim, lowercase)\nconst textoNormalizado = rawMensagem\n  .normalize('NFD')\n  .replace(/[\\u0300-\\u036f]/g, '')\n  .toLowerCase()\n  .trim();\n\nreturn [{\n  json: {\n    isValid: true,\n    usuario,\n    texto: textoNormalizado,\n    mensagemOriginal: rawMensagem.trim(),\n    receivedAt: new Date().toISOString()\n  }\n}];"
+        "jsCode": "// 1. Validação defensiva do payload\nconst rawInput = $input.first().json.body || $input.first().json || {};\nconst rawFrom = rawInput.from;\nconst rawMensagem = rawInput.mensagem;\n\nif (!rawFrom || !rawMensagem || typeof rawMensagem !== 'string' || rawMensagem.trim().length === 0) {\n  return [{\n    json: {\n      isValid: false,\n      errorCode: 'INVALID_PAYLOAD',\n      errorMessage: \"Os campos 'from' (telefone/ID) e 'mensagem' (texto não vazio) são obrigatórios.\",\n      received: rawInput\n    }\n  }];\n}\n\nconst usuario = String(rawFrom).replace(/\\D/g, '') || String(rawFrom).trim();\nconst textoNormalizado = rawMensagem\n  .normalize('NFD')\n  .replace(/[\\u0300-\\u036f]/g, '')\n  .toLowerCase()\n  .trim();\n\nreturn [{\n  json: {\n    isValid: true,\n    usuario,\n    texto: textoNormalizado,\n    mensagemOriginal: rawMensagem.trim(),\n    receivedAt: new Date().toISOString()\n  }\n}];"
       },
       "id": "node-ent-validator",
       "name": "Code - Validação e Normalização Defensiva",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [440, 340]
+      "position": [
+        440,
+        300
+      ]
     },
     {
       "parameters": {
         "conditions": {
           "options": {
             "caseSensitive": true,
-            "leftValue": "",
             "typeValidation": "strict"
           },
           "conditions": [
             {
-              "id": "check-valid",
+              "id": "c1",
               "leftValue": "={{ $json.isValid }}",
               "rightValue": true,
               "operator": {
@@ -49,11 +54,14 @@
         },
         "options": {}
       },
-      "id": "node-ent-if-valid",
+      "id": "node-ent-if",
       "name": "IF - Payload Válido?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [680, 340]
+      "position": [
+        680,
+        300
+      ]
     },
     {
       "parameters": {
@@ -63,141 +71,28 @@
           "responseCode": 400
         }
       },
-      "id": "node-ent-err-400",
+      "id": "node-ent-400",
       "name": "Respond 400 - Bad Request",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [920, 520]
+      "position": [
+        940,
+        440
+      ]
     },
     {
       "parameters": {
         "language": "javaScript",
-        "jsCode": "// ==========================================================================\n// CLASSIFICAÇÃO SEMÂNTICA DE INTENÇÃO (Semantic Intent Engine)\n// ==========================================================================\nconst { texto, usuario, mensagemOriginal, receivedAt } = $input.first().json;\n\n// Dicionários de termos-chave para categorização de intenção\nconst intencoes = {\n  SUPORTE_URGENTE: ['ajuda', 'ajuda-me', 'socorro', 'urgente', 'problema', 'defeito', 'quebrou', 'falha', 'erro', 'travou'],\n  COMERCIAL_VENDAS: ['comprar', 'preco', 'valor', 'orcamento', 'catalogo', 'produto', 'quanto custa', 'promocao'],\n  CANCELAMENTO: ['cancelar', 'estorno', 'reembolso', 'devolucao', 'desistir']\n};\n\nlet intencaoIdentificada = 'DUVIDA_GERAL';\nlet confianca = 0.70;\nlet termosCasados = [];\n\nfor (const [intencao, termos] of Object.entries(intencoes)) {\n  const matches = termos.filter(t => texto.includes(t));\n  if (matches.length > 0) {\n    intencaoIdentificada = intencao;\n    termosCasados = matches;\n    confianca = Math.min(0.98, 0.75 + (matches.length * 0.1));\n    break;\n  }\n}\n\nreturn [{\n  json: {\n    usuario,\n    mensagemOriginal,\n    intencao: intencaoIdentificada,\n    confianca,\n    termosCasados,\n    receivedAt,\n    processedAt: new Date().toISOString()\n  }\n}];"
+        "jsCode": "// Motor de Classificação Semântica de Intenções\nconst { texto, usuario, mensagemOriginal, receivedAt } = $input.first().json;\n\nconst intencoes = {\n  SUPORTE_URGENTE: {\n    termos: ['ajuda', 'socorro', 'urgente', 'problema', 'defeito', 'quebrou', 'falha', 'erro', 'travou'],\n    resposta: \"Olá! Identificamos que você precisa de suporte urgente. Nossa equipe técnica já foi acionada para te atender com prioridade máxima.\"\n  },\n  COMERCIAL_VENDAS: {\n    termos: ['comprar', 'preco', 'valor', 'orcamento', 'catalogo', 'produto', 'quanto custa', 'promocao'],\n    resposta: \"Olá! Ficamos muito felizes pelo seu interesse em nossas soluções. Um de nossos consultores comerciais entrará em contato em instantes.\"\n  },\n  CANCELAMENTO: {\n    termos: ['cancelar', 'estorno', 'reembolso', 'devolucao', 'desistir'],\n    resposta: \"Sentimos muito que queira cancelar. Seu atendimento foi priorizado junto à nossa equipe de retenção.\"\n  }\n};\n\nlet intencaoIdentificada = 'DUVIDA_GERAL';\nlet resposta = \"Mensagem recebida. Em breve retornaremos com todas as informações.\";\nlet confianca = 0.70;\nlet termosCasados = [];\n\nfor (const [intencao, config] of Object.entries(intencoes)) {\n  const matches = config.termos.filter(t => texto.includes(t));\n  if (matches.length > 0) {\n    intencaoIdentificada = intencao;\n    resposta = config.resposta;\n    termosCasados = matches;\n    confianca = Math.min(0.98, 0.75 + (matches.length * 0.1));\n    break;\n  }\n}\n\nreturn [{\n  json: {\n    usuario,\n    resposta,\n    mensagemOriginal,\n    intencao: intencaoIdentificada,\n    confianca,\n    termosCasados,\n    receivedAt,\n    processedAt: new Date().toISOString()\n  }\n}];"
       },
       "id": "node-ent-classifier",
       "name": "Code - Classificador Semântico de Intenção",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [920, 240]
-    },
-    {
-      "parameters": {
-        "dataType": "string",
-        "value1": "={{ $json.intencao }}",
-        "rules": {
-          "rules": [
-            {
-              "value2": "SUPORTE_URGENTE",
-              "outputKey": "suporte"
-            },
-            {
-              "value2": "COMERCIAL_VENDAS",
-              "outputKey": "comercial"
-            },
-            {
-              "value2": "CANCELAMENTO",
-              "outputKey": "cancelamento"
-            }
-          ]
-        },
-        "fallbackOutput": 3
-      },
-      "id": "node-ent-switch",
-      "name": "Switch - Roteador de Intenções",
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 3,
-      "position": [1160, 240]
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "resp-suporte",
-              "name": "resposta",
-              "value": "Olá! Identificamos que você precisa de suporte urgente. Nossa equipe técnica já foi acionada para te atender com prioridade máxima.",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "node-ent-resp-suporte",
-      "name": "Set - Resposta Suporte Urgente",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [1420, 80]
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "resp-comercial",
-              "name": "resposta",
-              "value": "Olá! Ficamos muito felizes pelo seu interesse em nossas soluções. Um de nossos consultores comerciais entrará em contato em instantes.",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "node-ent-resp-comercial",
-      "name": "Set - Resposta Comercial",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [1420, 200]
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "resp-cancelamento",
-              "name": "resposta",
-              "value": "Sentimos muito que queira cancelar. Seu atendimento foi priorizado junto à nossa equipe de retenção e atendimento ao cliente.",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "node-ent-resp-cancelamento",
-      "name": "Set - Resposta Cancelamento",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [1420, 320]
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "resp-padrao",
-              "name": "resposta",
-              "value": "Mensagem recebida. Em breve retornaremos com todas as informações.",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "node-ent-resp-padrao",
-      "name": "Set - Resposta Padrão Fallback",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [1420, 440]
-    },
-    {
-      "parameters": {
-        "mode": "append",
-        "options": {}
-      },
-      "id": "node-ent-merge",
-      "name": "Merge - Consolidar Respostas",
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 3,
-      "position": [1680, 240]
+      "position": [
+        940,
+        180
+      ]
     },
     {
       "parameters": {
@@ -207,11 +102,14 @@
           "responseCode": 200
         }
       },
-      "id": "node-ent-respond-200",
+      "id": "node-ent-200",
       "name": "Respond to Webhook (200 OK)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1920, 240]
+      "position": [
+        1200,
+        180
+      ]
     }
   ],
   "connections": {
@@ -256,93 +154,6 @@
       ]
     },
     "Code - Classificador Semântico de Intenção": {
-      "main": [
-        [
-          {
-            "node": "Switch - Roteador de Intenções",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Switch - Roteador de Intenções": {
-      "main": [
-        [
-          {
-            "node": "Set - Resposta Suporte Urgente",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Set - Resposta Comercial",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Set - Resposta Cancelamento",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Set - Resposta Padrão Fallback",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Set - Resposta Suporte Urgente": {
-      "main": [
-        [
-          {
-            "node": "Merge - Consolidar Respostas",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Set - Resposta Comercial": {
-      "main": [
-        [
-          {
-            "node": "Merge - Consolidar Respostas",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Set - Resposta Cancelamento": {
-      "main": [
-        [
-          {
-            "node": "Merge - Consolidar Respostas",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Set - Resposta Padrão Fallback": {
-      "main": [
-        [
-          {
-            "node": "Merge - Consolidar Respostas",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Merge - Consolidar Respostas": {
       "main": [
         [
           {
