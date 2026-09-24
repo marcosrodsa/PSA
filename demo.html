@@ -3,177 +3,253 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Simulador WhatsApp — PSA Triagem n8n</title>
+  <title>PSA — Simulador WhatsApp (n8n + GPT-4o-mini)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       background-color: #0b141a;
-      display: flex;
-      justify-content: center;
-      align-items: center;
       min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 20px 16px;
       color: #e9edef;
-      padding: 16px;
     }
 
+    /* ── MODE SELECTOR ─────────────────────────────────── */
+    .mode-selector-wrap {
+      width: 100%;
+      max-width: 940px;
+      margin-bottom: 16px;
+    }
+
+    .mode-selector-wrap h1 {
+      font-size: 14px;
+      color: #8696a0;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 10px;
+    }
+
+    .mode-selector {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .mode-card {
+      background-color: #182229;
+      border: 2px solid #2a3942;
+      border-radius: 12px;
+      padding: 16px 20px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .mode-card:hover {
+      border-color: #3d5a66;
+      background-color: #1f2d35;
+    }
+
+    .mode-card.active-oficial {
+      border-color: #00a884;
+      background-color: #0d2016;
+    }
+
+    .mode-card.active-enterprise {
+      border-color: #7c3aed;
+      background-color: #1a0d2e;
+    }
+
+    .mode-card .mode-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-bottom: 8px;
+    }
+
+    .badge-oficial {
+      background-color: #00a88420;
+      color: #00a884;
+      border: 1px solid #00a88440;
+    }
+
+    .badge-enterprise {
+      background-color: #7c3aed20;
+      color: #a78bfa;
+      border: 1px solid #7c3aed40;
+    }
+
+    .mode-card h2 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #e9edef;
+      margin-bottom: 4px;
+    }
+
+    .mode-card p {
+      font-size: 12px;
+      color: #8696a0;
+      line-height: 1.5;
+    }
+
+    .mode-card .mode-detail {
+      margin-top: 10px;
+      font-size: 11.5px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .detail-oficial { background-color: #00a88410; }
+    .detail-enterprise { background-color: #7c3aed10; }
+
+    .mode-detail span {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      color: #adb5bd;
+    }
+
+    .active-indicator {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: none;
+    }
+
+    .mode-card.active-oficial .active-indicator { display: block; background: #00a884; box-shadow: 0 0 8px #00a884; }
+    .mode-card.active-enterprise .active-indicator { display: block; background: #7c3aed; box-shadow: 0 0 8px #7c3aed; }
+
+    /* ── CHAT CONTAINER ────────────────────────────────── */
     .container {
       width: 100%;
-      max-width: 920px;
-      height: 92vh;
+      max-width: 940px;
+      height: 70vh;
+      min-height: 480px;
       background-color: #111b21;
       border-radius: 12px;
       display: flex;
       flex-direction: column;
-      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 12px 36px rgba(0,0,0,0.6);
       overflow: hidden;
       border: 1px solid #222d34;
+      transition: border-color 0.3s;
     }
 
-    /* Top Bar */
+    .container.mode-oficial { border-color: #00a88440; }
+    .container.mode-enterprise { border-color: #7c3aed40; }
+
+    /* Header */
     .chat-header {
-      background-color: #202c33;
       padding: 12px 18px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       border-bottom: 1px solid #222d34;
+      transition: background-color 0.3s;
     }
 
-    .user-info {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+    .chat-header.mode-oficial { background-color: #0d2016; }
+    .chat-header.mode-enterprise { background-color: #1a0d2e; }
+
+    .user-info { display: flex; align-items: center; gap: 12px; }
 
     .avatar {
-      width: 44px;
-      height: 44px;
+      width: 40px; height: 40px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #00a884, #005c4b);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      font-weight: 700;
-      color: #ffffff;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 700;
+      transition: background 0.3s;
     }
 
-    .user-details h2 {
-      font-size: 16px;
-      font-weight: 600;
-      color: #e9edef;
-      margin-bottom: 2px;
+    .avatar.mode-oficial { background: linear-gradient(135deg, #00a884, #005c4b); }
+    .avatar.mode-enterprise { background: linear-gradient(135deg, #7c3aed, #4c1d95); }
+
+    .user-details h2 { font-size: 15px; font-weight: 600; color: #e9edef; margin-bottom: 2px; }
+    .user-details .status {
+      font-size: 11.5px; display: flex; align-items: center; gap: 5px;
+      transition: color 0.3s;
+    }
+    .status.mode-oficial { color: #00a884; }
+    .status.mode-enterprise { color: #a78bfa; }
+
+    .status::before {
+      content: ''; display: inline-block;
+      width: 7px; height: 7px; border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    .status.mode-oficial::before { background-color: #00a884; }
+    .status.mode-enterprise::before { background-color: #7c3aed; }
+
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    .header-badge {
+      font-size: 11.5px; font-weight: 600;
+      padding: 4px 12px; border-radius: 20px;
+      transition: all 0.3s;
+    }
+    .header-badge.mode-oficial {
+      background-color: #00a88420; color: #00a884; border: 1px solid #00a88440;
+    }
+    .header-badge.mode-enterprise {
+      background-color: #7c3aed20; color: #a78bfa; border: 1px solid #7c3aed40;
     }
 
-    .user-details span {
-      font-size: 12px;
-      color: #00a884;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .user-details span::before {
-      content: '';
-      display: inline-block;
-      width: 8px;
-      height: 8px;
-      background-color: #00a884;
-      border-radius: 50%;
-    }
-
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .badge-status {
-      font-size: 12px;
-      background-color: #1f352b;
-      color: #25d366;
-      padding: 5px 12px;
-      border-radius: 14px;
-      border: 1px solid #00a88440;
-      font-weight: 500;
-    }
-
-    /* Configuration strip */
-    .config-strip {
-      background-color: #182229;
-      padding: 8px 18px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 13px;
-      border-bottom: 1px solid #222d34;
-      color: #8696a0;
-    }
-
-    .config-strip input {
-      flex: 1;
-      background-color: #111b21;
-      border: 1px solid #2a3942;
-      padding: 6px 12px;
-      border-radius: 6px;
-      color: #d1d7db;
-      font-size: 12px;
-      outline: none;
-    }
-
-    .config-strip input:focus {
-      border-color: #00a884;
-    }
-
-    /* Quick Test Preset Buttons */
+    /* Preset Buttons */
     .presets-bar {
       background-color: #111b21;
-      padding: 10px 18px;
+      padding: 8px 16px;
       display: flex;
       align-items: center;
       gap: 8px;
       flex-wrap: wrap;
       border-bottom: 1px solid #222d34;
-    }
-
-    .preset-label {
       font-size: 12px;
       color: #8696a0;
-      margin-right: 4px;
     }
 
     .btn-preset {
-      background-color: #202c33;
       border: 1px solid #2a3942;
+      background-color: #182229;
       color: #d1d7db;
-      padding: 6px 12px;
+      padding: 5px 12px;
       border-radius: 16px;
       font-size: 12px;
       cursor: pointer;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      transition: all 0.2s;
+      font-family: inherit;
     }
 
     .btn-preset:hover {
       background-color: #00a884;
       color: #fff;
       border-color: #00a884;
-      transform: translateY(-1px);
     }
 
-    /* Chat Messages Canvas */
+    .btn-preset.enterprise-btn:hover {
+      background-color: #7c3aed;
+      border-color: #7c3aed;
+    }
+
+    /* Messages */
     .chat-messages {
       flex: 1;
       padding: 20px;
@@ -183,73 +259,133 @@
       background-size: 20px 20px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
 
     .message {
-      max-width: 65%;
-      padding: 8px 12px;
+      max-width: 68%;
+      padding: 9px 13px;
       border-radius: 8px;
-      font-size: 14.2px;
-      line-height: 1.4;
+      font-size: 14px;
+      line-height: 1.5;
       position: relative;
       word-break: break-word;
-      animation: fadeIn 0.25s ease-out;
+      animation: fadeUp 0.22s ease-out;
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: translateY(0); }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
 
     .message.sent {
       align-self: flex-end;
       background-color: #005c4b;
       color: #e9edef;
-      border-top-right-radius: 0;
+      border-top-right-radius: 2px;
     }
 
     .message.received {
       align-self: flex-start;
       background-color: #202c33;
       color: #e9edef;
-      border-top-left-radius: 0;
+      border-top-left-radius: 2px;
     }
 
     .message-meta {
       display: flex;
       justify-content: flex-end;
-      align-items: center;
       gap: 4px;
-      font-size: 11px;
+      font-size: 10.5px;
       color: #8696a0;
-      margin-top: 4px;
+      margin-top: 5px;
     }
 
-    .ticks {
-      color: #53bdeb;
-      font-size: 13px;
+    .ticks { color: #53bdeb; }
+
+    /* AI Metadata Card — só aparece no Enterprise */
+    .ai-meta-card {
+      margin-top: 8px;
+      padding: 8px 10px;
+      background-color: #1a0d2e;
+      border: 1px solid #7c3aed40;
+      border-radius: 6px;
+      font-size: 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
 
-    /* Typing indicator */
+    .ai-meta-card .meta-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #a78bfa;
+      margin-bottom: 2px;
+    }
+
+    .ai-meta-card .meta-row {
+      display: flex;
+      justify-content: space-between;
+      color: #8696a0;
+    }
+
+    .ai-meta-card .meta-value {
+      font-weight: 600;
+      color: #d1d7db;
+    }
+
+    .intent-pill {
+      display: inline-block;
+      padding: 1px 8px;
+      border-radius: 10px;
+      font-size: 10.5px;
+      font-weight: 700;
+    }
+
+    .intent-SUPORTE_URGENTE  { background: #ef444420; color: #fca5a5; border: 1px solid #ef444430; }
+    .intent-COMERCIAL_VENDAS { background: #f5920020; color: #fdba74; border: 1px solid #f5920030; }
+    .intent-CANCELAMENTO     { background: #eab30820; color: #fde68a; border: 1px solid #eab30830; }
+    .intent-DUVIDA_GERAL     { background: #3b82f620; color: #93c5fd; border: 1px solid #3b82f630; }
+
+    /* Confidence Bar */
+    .conf-bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .conf-bar {
+      flex: 1;
+      height: 4px;
+      background-color: #2a3942;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .conf-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #7c3aed, #a78bfa);
+      border-radius: 2px;
+      transition: width 0.5s ease;
+    }
+
+    /* Typing */
     .typing-indicator {
       align-self: flex-start;
       background-color: #202c33;
       padding: 10px 16px;
       border-radius: 12px;
       display: none;
-      gap: 4px;
+      gap: 5px;
       align-items: center;
     }
 
     .typing-dot {
-      width: 6px;
-      height: 6px;
+      width: 6px; height: 6px;
       background-color: #8696a0;
       border-radius: 50%;
       animation: typing 1.4s infinite ease-in-out;
     }
-
     .typing-dot:nth-child(1) { animation-delay: 0s; }
     .typing-dot:nth-child(2) { animation-delay: 0.2s; }
     .typing-dot:nth-child(3) { animation-delay: 0.4s; }
@@ -259,13 +395,13 @@
       30% { transform: translateY(-5px); }
     }
 
-    /* Input Bar */
+    /* Input */
     .chat-input-bar {
       background-color: #202c33;
-      padding: 10px 16px;
+      padding: 10px 14px;
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       border-top: 1px solid #222d34;
     }
 
@@ -273,108 +409,111 @@
       flex: 1;
       background-color: #2a3942;
       border: none;
-      padding: 12px 16px;
+      padding: 11px 16px;
       border-radius: 8px;
       color: #d1d7db;
       font-size: 14px;
       outline: none;
+      font-family: inherit;
     }
 
-    .input-field::placeholder {
-      color: #8696a0;
-    }
+    .input-field::placeholder { color: #8696a0; }
 
     .btn-send {
-      width: 44px;
-      height: 44px;
+      width: 42px; height: 42px;
       border-radius: 50%;
-      background-color: #00a884;
       border: none;
       color: white;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: background 0.2s;
+      transition: background 0.2s, transform 0.1s;
     }
 
-    .btn-send:hover {
-      background-color: #06cf9c;
-    }
+    .btn-send.mode-oficial { background-color: #00a884; }
+    .btn-send.mode-oficial:hover { background-color: #06cf9c; }
+    .btn-send.mode-enterprise { background-color: #7c3aed; }
+    .btn-send.mode-enterprise:hover { background-color: #9d5cf6; }
+    .btn-send:active { transform: scale(0.92); }
 
-    .btn-send svg {
-      width: 20px;
-      height: 20px;
-      fill: currentColor;
-    }
+    .btn-send svg { width: 20px; height: 20px; fill: currentColor; }
 
-    /* Info Banner */
     .info-banner {
       background-color: #182229;
       text-align: center;
       padding: 6px;
-      font-size: 11.5px;
+      font-size: 11px;
       color: #8696a0;
       border-top: 1px solid #222d34;
     }
 
-    .info-banner a {
-      color: #00a884;
-      text-decoration: none;
-      font-weight: 600;
-    }
+    .info-banner a { color: #00a884; text-decoration: none; font-weight: 600; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #2a3942; border-radius: 3px; }
   </style>
 </head>
 <body>
 
-  <div class="container">
-    <!-- Header -->
-    <div class="chat-header">
+  <!-- MODE SELECTOR -->
+  <div class="mode-selector-wrap">
+    <h1>🤖 PSA WhatsApp Triage — Selecione o Modo de Operação</h1>
+    <div class="mode-selector">
+
+      <div class="mode-card active-oficial" id="cardOficial" onclick="setMode('oficial')">
+        <div class="active-indicator"></div>
+        <div class="mode-badge badge-oficial">✅ Entregável Oficial</div>
+        <h2>Workflow Oficial (PDF)</h2>
+        <p>Lógica fiel ao enunciado do desafio. Detecta a palavra <strong>"ajuda"</strong> e retorna uma de duas respostas fixas.</p>
+        <div class="mode-detail detail-oficial">
+          <span>⚡ Motor: Nó IF do n8n (comparação de string)</span>
+          <span>📋 Resposta: Texto fixo por rota (True/False)</span>
+          <span>🔗 Endpoint: /webhook/triagem-mensagem</span>
+        </div>
+      </div>
+
+      <div class="mode-card" id="cardEnterprise" onclick="setMode('enterprise')">
+        <div class="active-indicator"></div>
+        <div class="mode-badge badge-enterprise">🚀 Overdelivery Enterprise</div>
+        <h2>Enterprise AI (GPT-4o-mini)</h2>
+        <p>Classificação semântica real via <strong>LLM</strong>. Identifica intenção, gera resposta empática e retorna metadados de IA.</p>
+        <div class="mode-detail detail-enterprise">
+          <span>🧠 Motor: OpenAI GPT-4o-mini (inferência real)</span>
+          <span>📊 Retorna: intenção, confiança, resumo e resposta</span>
+          <span>🔗 Endpoint: /webhook/triagem-mensagem-enterprise</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CHAT WINDOW -->
+  <div class="container mode-oficial" id="chatContainer">
+
+    <div class="chat-header mode-oficial" id="chatHeader">
       <div class="user-info">
-        <div class="avatar">🤖</div>
+        <div class="avatar mode-oficial" id="chatAvatar">🤖</div>
         <div class="user-details">
-          <h2>PSA — Triagem de Mensagens (n8n Bot)</h2>
-          <span>online via Webhook de Produção</span>
+          <h2 id="chatTitle">PSA — Triagem Oficial (n8n)</h2>
+          <div class="status mode-oficial" id="chatStatus">online via Webhook de Produção</div>
         </div>
       </div>
-      <div class="header-actions">
-        <span class="badge-status">⚡ n8n Live</span>
-      </div>
+      <div class="header-badge mode-oficial" id="headerBadge">⚡ n8n IF/Set/Merge</div>
     </div>
 
-    <!-- Webhook URL Configuration Strip -->
-    <div class="config-strip">
-      <label for="webhookUrl">Webhook:</label>
-      <input type="text" id="webhookUrl" value="https://n8n.ulbrads.site/webhook/triagem-mensagem">
-      <label for="userFrom">From:</label>
-      <input type="text" id="userFrom" value="5511999990000" style="max-width: 140px;">
+    <div class="presets-bar" id="presetsBar">
+      <span style="color:#8696a0;font-size:12px;">Testes Rápidos:</span>
     </div>
 
-    <!-- Quick Test Presets -->
-    <div class="presets-bar">
-      <span class="preset-label">Testes Rápidos:</span>
-      <button class="btn-preset" onclick="sendPreset('Olá, preciso de AJUDA com meu pedido')">
-        🟢 Com "AJUDA" (Caminho True)
-      </button>
-      <button class="btn-preset" onclick="sendPreset('Oi, quero informações sobre o produto')">
-        ⚪ Sem "ajuda" (Caminho False)
-      </button>
-      <button class="btn-preset" onclick="sendPreset('Você pode me ajudá com o cadastro?')">
-        🟡 Variação Coloquial ("ajudá")
-      </button>
-    </div>
-
-    <!-- Message Canvas -->
     <div class="chat-messages" id="chatMessages">
-      <div class="message received">
-        👋 Olá! Sou o assistente de triagem WhatsApp conectado ao workflow n8n da <strong>PSA (Profissionais SA)</strong>.<br><br>
-        Envie qualquer mensagem abaixo ou clique nos botões de <em>Testes Rápidos</em> para ver a triagem em tempo real!
-        <div class="message-meta">
-          <span class="time" id="initialTime">--:--</span>
-        </div>
+      <div class="message received" id="welcomeMsg">
+        👋 Olá! Sou o assistente PSA.<br><br>
+        Selecione um <strong>Modo</strong> acima e envie uma mensagem para testar a triagem em tempo real!
+        <div class="message-meta"><span id="initTime">--:--</span></div>
       </div>
-
-      <!-- Typing Indicator -->
       <div class="typing-indicator" id="typingIndicator">
         <div class="typing-dot"></div>
         <div class="typing-dot"></div>
@@ -382,108 +521,229 @@
       </div>
     </div>
 
-    <!-- Input Bar -->
     <div class="chat-input-bar">
-      <input 
-        type="text" 
-        id="messageInput" 
-        class="input-field" 
-        placeholder="Digite uma mensagem..." 
+      <input type="text" id="messageInput" class="input-field"
+        placeholder="Digite uma mensagem..."
         autocomplete="off"
-        onkeydown="if(event.key === 'Enter') sendMessage()"
-      >
-      <button class="btn-send" id="btnSend" onclick="sendMessage()" title="Enviar mensagem">
-        <svg viewBox="0 0 24 24">
-          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-        </svg>
+        onkeydown="if(event.key==='Enter') sendMessage()">
+      <button class="btn-send mode-oficial" id="btnSend" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
       </button>
     </div>
 
-    <!-- Footer info -->
     <div class="info-banner">
-      Desafio Prático Analista de IA · Profissionais SA (PSA) · <a href="https://github.com/marcosrodsa/PSA" target="_blank">Ver Repositório GitHub</a>
+      PSA — Desafio Analista de IA &nbsp;·&nbsp;
+      <a href="https://github.com/marcosrodsa/PSA" target="_blank">Ver Repositório GitHub</a>
     </div>
   </div>
 
   <script>
-    function getCurrentTime() {
-      const now = new Date();
-      return now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+    /* ── CONFIG ────────────────────────────────────── */
+    const MODES = {
+      oficial: {
+        url: 'https://n8n.ulbrads.site/webhook/triagem-mensagem',
+        title: 'PSA — Triagem Oficial (n8n)',
+        status: 'online · IF + Set + Merge · resposta fixa',
+        badge: '⚡ n8n Oficial',
+        avatar: '⚡',
+        presets: [
+          { label: '🟢 COM "ajuda"',     text: 'Olá, preciso de AJUDA com meu pedido'          },
+          { label: '⚪ SEM "ajuda"',     text: 'Oi, quero informações sobre o produto'           },
+          { label: '🟡 Coloquial (acento)', text: 'Você pode me dar uma ajudá com o cadastro?'  },
+        ],
+        mode: 'oficial',
+        welcomeExtra: '📌 <strong>Modo Oficial</strong>: detecção simples da palavra "ajuda" — rota True ou False.',
+      },
+      enterprise: {
+        url: 'https://n8n.ulbrads.site/webhook/triagem-mensagem-enterprise',
+        title: 'PSA — Enterprise AI (GPT-4o-mini)',
+        status: 'online · OpenAI GPT-4o-mini · classificação semântica',
+        badge: '🧠 GPT-4o-mini',
+        avatar: '🧠',
+        presets: [
+          { label: '🔴 Suporte Urgente',   text: 'Meu produto chegou danificado, preciso de troca urgente!' },
+          { label: '🟠 Comercial/Vendas',  text: 'Quero saber o preço dos planos e fazer um orçamento'      },
+          { label: '🟡 Cancelamento',      text: 'Quero cancelar meu contrato e pedir reembolso'            },
+          { label: '🔵 Dúvida Geral',      text: 'Qual o horário de atendimento de vocês?'                  },
+        ],
+        mode: 'enterprise',
+        welcomeExtra: '🧠 <strong>Modo Enterprise</strong>: LLM real — a IA classifica semanticamente a intenção e gera resposta empática.',
+      }
+    };
+
+    let currentMode = 'oficial';
+
+    /* ── TIME ──────────────────────────────────────── */
+    function now() {
+      return new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    }
+    document.getElementById('initTime').textContent = now();
+
+    /* ── SWITCH MODE ───────────────────────────────── */
+    function setMode(mode) {
+      currentMode = mode;
+      const cfg = MODES[mode];
+
+      // Cards
+      document.getElementById('cardOficial').className    = 'mode-card' + (mode === 'oficial'    ? ' active-oficial'    : '');
+      document.getElementById('cardEnterprise').className = 'mode-card' + (mode === 'enterprise' ? ' active-enterprise' : '');
+
+      // Container border
+      const container = document.getElementById('chatContainer');
+      container.className = `container mode-${mode}`;
+
+      // Header
+      const header = document.getElementById('chatHeader');
+      header.className = `chat-header mode-${mode}`;
+
+      document.getElementById('chatAvatar').className = `avatar mode-${mode}`;
+      document.getElementById('chatAvatar').textContent = cfg.avatar;
+      document.getElementById('chatTitle').textContent  = cfg.title;
+
+      const statusEl = document.getElementById('chatStatus');
+      statusEl.className = `status mode-${mode}`;
+      statusEl.textContent = cfg.status;
+
+      const badge = document.getElementById('headerBadge');
+      badge.className = `header-badge mode-${mode}`;
+      badge.textContent = cfg.badge;
+
+      const btnSend = document.getElementById('btnSend');
+      btnSend.className = `btn-send mode-${mode}`;
+
+      // Presets
+      const bar = document.getElementById('presetsBar');
+      bar.innerHTML = `<span style="color:#8696a0;font-size:12px;">Testes Rápidos:</span>`;
+      cfg.presets.forEach(p => {
+        const btn = document.createElement('button');
+        btn.className = `btn-preset${mode === 'enterprise' ? ' enterprise-btn' : ''}`;
+        btn.textContent = p.label;
+        btn.onclick = () => sendPreset(p.text);
+        bar.appendChild(btn);
+      });
+
+      // Welcome message per mode
+      appendSystemMsg(cfg.welcomeExtra);
+
+      // Clear input
+      document.getElementById('messageInput').placeholder =
+        mode === 'enterprise'
+          ? 'Digite qualquer mensagem — a IA vai classificar...'
+          : 'Digite uma mensagem com ou sem "ajuda"...';
     }
 
-    document.getElementById('initialTime').innerText = getCurrentTime();
+    /* ── MESSAGES ──────────────────────────────────── */
+    function appendSystemMsg(html) {
+      const msgs = document.getElementById('chatMessages');
+      const typing = document.getElementById('typingIndicator');
+      const div = document.createElement('div');
+      div.className = 'message received';
+      div.style.maxWidth = '85%';
+      div.style.fontSize = '13px';
+      div.style.opacity = '0.85';
+      div.innerHTML = html + `<div class="message-meta"><span>${now()}</span></div>`;
+      msgs.insertBefore(div, typing);
+      msgs.scrollTop = msgs.scrollHeight;
+    }
 
-    function appendMessage(text, type, extraInfo = '') {
-      const chatMessages = document.getElementById('chatMessages');
-      const typingIndicator = document.getElementById('typingIndicator');
+    function appendMessage(text, type, aiMeta = null) {
+      const msgs    = document.getElementById('chatMessages');
+      const typing  = document.getElementById('typingIndicator');
+      const div     = document.createElement('div');
+      div.className = `message ${type}`;
 
-      const msgDiv = document.createElement('div');
-      msgDiv.className = `message ${type}`;
+      let inner = `<div>${text}</div>`;
 
-      let content = text;
-      if (extraInfo) {
-        content += `<br><small style="opacity: 0.7; font-size: 11px;">${extraInfo}</small>`;
+      // Enterprise AI metadata card
+      if (aiMeta && currentMode === 'enterprise') {
+        const confPct = Math.round((aiMeta.confianca || 0) * 100);
+        const intentClass = `intent-${aiMeta.intencao || 'DUVIDA_GERAL'}`;
+        inner += `
+          <div class="ai-meta-card">
+            <div class="meta-title">📊 Metadados da IA</div>
+            <div class="meta-row">
+              <span>Intenção</span>
+              <span class="intent-pill ${intentClass}">${aiMeta.intencao || '—'}</span>
+            </div>
+            <div class="meta-row">
+              <span>Confiança</span>
+              <span class="meta-value">${confPct}%</span>
+            </div>
+            <div class="conf-bar-wrap">
+              <div class="conf-bar"><div class="conf-fill" style="width:${confPct}%"></div></div>
+            </div>
+            ${aiMeta.resumo ? `<div class="meta-row"><span>Resumo</span><span class="meta-value" style="max-width:65%;text-align:right;font-size:10.5px">${aiMeta.resumo}</span></div>` : ''}
+            <div class="meta-row"><span>Motor</span><span class="meta-value" style="color:#a78bfa">${aiMeta.motor || '—'}</span></div>
+          </div>`;
       }
 
-      msgDiv.innerHTML = `
-        ${content}
+      div.innerHTML = inner + `
         <div class="message-meta">
-          <span>${getCurrentTime()}</span>
+          <span>${now()}</span>
           ${type === 'sent' ? '<span class="ticks">✓✓</span>' : ''}
-        </div>
-      `;
+        </div>`;
 
-      chatMessages.insertBefore(msgDiv, typingIndicator);
-      chatMessages.scrollTop = chatMessages.scrollHeight;
+      msgs.insertBefore(div, typing);
+      msgs.scrollTop = msgs.scrollHeight;
     }
 
+    /* ── SEND ──────────────────────────────────────── */
     async function sendMessage() {
       const input = document.getElementById('messageInput');
-      const text = input.value.trim();
+      const text  = input.value.trim();
       if (!text) return;
 
       input.value = '';
       appendMessage(text, 'sent');
 
-      const webhookUrl = document.getElementById('webhookUrl').value.trim();
-      const userFrom = document.getElementById('userFrom').value.trim() || '5511999990000';
+      const typing = document.getElementById('typingIndicator');
+      typing.style.display = 'flex';
+      document.getElementById('chatMessages').scrollTop = 99999;
 
-      const typingIndicator = document.getElementById('typingIndicator');
-      typingIndicator.style.display = 'flex';
-      const chatMessages = document.getElementById('chatMessages');
-      chatMessages.scrollTop = chatMessages.scrollHeight;
-
-      const startTime = performance.now();
+      const t0 = performance.now();
 
       try {
-        const response = await fetch(webhookUrl, {
+        const resp = await fetch(MODES[currentMode].url, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            from: userFrom,
-            mensagem: text
-          })
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ from: '5511999990000', mensagem: text })
         });
 
-        const elapsed = Math.round(performance.now() - startTime);
-        typingIndicator.style.display = 'none';
+        const elapsed = Math.round(performance.now() - t0);
+        typing.style.display = 'none';
 
-        if (!response.ok) {
-          appendMessage(`⚠️ Erro na resposta do n8n (HTTP ${response.status})`, 'received');
+        if (!resp.ok) {
+          const errData = await resp.json().catch(() => ({}));
+          appendMessage(
+            `⚠️ <strong>HTTP ${resp.status}</strong>: ${errData.mensagem || 'Erro no webhook'}`,
+            'received'
+          );
           return;
         }
 
-        const data = await response.json();
-        const replyText = data.resposta || JSON.stringify(data);
-        const meta = `⚡ Respondido pelo n8n em ${elapsed}ms | Usuário: ${data.usuario || userFrom}`;
+        const data = await resp.json();
 
-        appendMessage(replyText, 'received', meta);
+        // Oficial mode — simple resposta field
+        if (currentMode === 'oficial') {
+          const replyText = data.resposta || JSON.stringify(data);
+          appendMessage(
+            `${replyText}<br><small style="opacity:.6;font-size:10.5px">⚡ ${elapsed}ms · Usuário: ${data.usuario || '?'}</small>`,
+            'received'
+          );
+        } else {
+          // Enterprise — show resposta + AI metadata card
+          const replyText = data.resposta || '(sem resposta)';
+          const footerTxt = `⚡ ${elapsed}ms · GPT-4o-mini · Usuário: ${data.usuario || '?'}`;
+          appendMessage(
+            `${replyText}<br><small style="opacity:.6;font-size:10.5px">${footerTxt}</small>`,
+            'received',
+            data.metadata || null
+          );
+        }
 
       } catch (err) {
-        typingIndicator.style.display = 'none';
-        appendMessage(`❌ Erro ao conectar com o webhook: ${err.message}. Verifique sua conexão ou CORS.`, 'received');
+        typing.style.display = 'none';
+        appendMessage(`❌ Erro de conexão: ${err.message}`, 'received');
       }
     }
 
@@ -491,6 +751,9 @@
       document.getElementById('messageInput').value = text;
       sendMessage();
     }
+
+    /* Init */
+    setMode('oficial');
   </script>
 </body>
 </html>
