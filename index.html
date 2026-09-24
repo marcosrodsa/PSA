@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador WhatsApp — PSA Triagem n8n</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    }
+
+    body {
+      background-color: #0b141a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      color: #e9edef;
+      padding: 16px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 920px;
+      height: 92vh;
+      background-color: #111b21;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+      overflow: hidden;
+      border: 1px solid #222d34;
+    }
+
+    /* Top Bar */
+    .chat-header {
+      background-color: #202c33;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #222d34;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #00a884, #005c4b);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 700;
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
+    .user-details h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #e9edef;
+      margin-bottom: 2px;
+    }
+
+    .user-details span {
+      font-size: 12px;
+      color: #00a884;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .user-details span::before {
+      content: '';
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background-color: #00a884;
+      border-radius: 50%;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .badge-status {
+      font-size: 12px;
+      background-color: #1f352b;
+      color: #25d366;
+      padding: 5px 12px;
+      border-radius: 14px;
+      border: 1px solid #00a88440;
+      font-weight: 500;
+    }
+
+    /* Configuration strip */
+    .config-strip {
+      background-color: #182229;
+      padding: 8px 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      border-bottom: 1px solid #222d34;
+      color: #8696a0;
+    }
+
+    .config-strip input {
+      flex: 1;
+      background-color: #111b21;
+      border: 1px solid #2a3942;
+      padding: 6px 12px;
+      border-radius: 6px;
+      color: #d1d7db;
+      font-size: 12px;
+      outline: none;
+    }
+
+    .config-strip input:focus {
+      border-color: #00a884;
+    }
+
+    /* Quick Test Preset Buttons */
+    .presets-bar {
+      background-color: #111b21;
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid #222d34;
+    }
+
+    .preset-label {
+      font-size: 12px;
+      color: #8696a0;
+      margin-right: 4px;
+    }
+
+    .btn-preset {
+      background-color: #202c33;
+      border: 1px solid #2a3942;
+      color: #d1d7db;
+      padding: 6px 12px;
+      border-radius: 16px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-preset:hover {
+      background-color: #00a884;
+      color: #fff;
+      border-color: #00a884;
+      transform: translateY(-1px);
+    }
+
+    /* Chat Messages Canvas */
+    .chat-messages {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      background-color: #0b141a;
+      background-image: radial-gradient(#1f2c34 1px, transparent 1px);
+      background-size: 20px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .message {
+      max-width: 65%;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 14.2px;
+      line-height: 1.4;
+      position: relative;
+      word-break: break-word;
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message.sent {
+      align-self: flex-end;
+      background-color: #005c4b;
+      color: #e9edef;
+      border-top-right-radius: 0;
+    }
+
+    .message.received {
+      align-self: flex-start;
+      background-color: #202c33;
+      color: #e9edef;
+      border-top-left-radius: 0;
+    }
+
+    .message-meta {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: #8696a0;
+      margin-top: 4px;
+    }
+
+    .ticks {
+      color: #53bdeb;
+      font-size: 13px;
+    }
+
+    /* Typing indicator */
+    .typing-indicator {
+      align-self: flex-start;
+      background-color: #202c33;
+      padding: 10px 16px;
+      border-radius: 12px;
+      display: none;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      background-color: #8696a0;
+      border-radius: 50%;
+      animation: typing 1.4s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(1) { animation-delay: 0s; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typing {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-5px); }
+    }
+
+    /* Input Bar */
+    .chat-input-bar {
+      background-color: #202c33;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-top: 1px solid #222d34;
+    }
+
+    .input-field {
+      flex: 1;
+      background-color: #2a3942;
+      border: none;
+      padding: 12px 16px;
+      border-radius: 8px;
+      color: #d1d7db;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .input-field::placeholder {
+      color: #8696a0;
+    }
+
+    .btn-send {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background-color: #00a884;
+      border: none;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    .btn-send:hover {
+      background-color: #06cf9c;
+    }
+
+    .btn-send svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
+
+    /* Info Banner */
+    .info-banner {
+      background-color: #182229;
+      text-align: center;
+      padding: 6px;
+      font-size: 11.5px;
+      color: #8696a0;
+      border-top: 1px solid #222d34;
+    }
+
+    .info-banner a {
+      color: #00a884;
+      text-decoration: none;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Header -->
+    <div class="chat-header">
+      <div class="user-info">
+        <div class="avatar">🤖</div>
+        <div class="user-details">
+          <h2>PSA — Triagem de Mensagens (n8n Bot)</h2>
+          <span>online via Webhook de Produção</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span class="badge-status">⚡ n8n Live</span>
+      </div>
+    </div>
+
+    <!-- Webhook URL Configuration Strip -->
+    <div class="config-strip">
+      <label for="webhookUrl">Webhook:</label>
+      <input type="text" id="webhookUrl" value="https://n8n.ulbrads.site/webhook/triagem-mensagem">
+      <label for="userFrom">From:</label>
+      <input type="text" id="userFrom" value="5511999990000" style="max-width: 140px;">
+    </div>
+
+    <!-- Quick Test Presets -->
+    <div class="presets-bar">
+      <span class="preset-label">Testes Rápidos:</span>
+      <button class="btn-preset" onclick="sendPreset('Olá, preciso de AJUDA com meu pedido')">
+        🟢 Com "AJUDA" (Caminho True)
+      </button>
+      <button class="btn-preset" onclick="sendPreset('Oi, quero informações sobre o produto')">
+        ⚪ Sem "ajuda" (Caminho False)
+      </button>
+      <button class="btn-preset" onclick="sendPreset('Você pode me ajudá com o cadastro?')">
+        🟡 Variação Coloquial ("ajudá")
+      </button>
+    </div>
+
+    <!-- Message Canvas -->
+    <div class="chat-messages" id="chatMessages">
+      <div class="message received">
+        👋 Olá! Sou o assistente de triagem WhatsApp conectado ao workflow n8n da <strong>PSA (Profissionais SA)</strong>.<br><br>
+        Envie qualquer mensagem abaixo ou clique nos botões de <em>Testes Rápidos</em> para ver a triagem em tempo real!
+        <div class="message-meta">
+          <span class="time" id="initialTime">--:--</span>
+        </div>
+      </div>
+
+      <!-- Typing Indicator -->
+      <div class="typing-indicator" id="typingIndicator">
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>
+    </div>
+
+    <!-- Input Bar -->
+    <div class="chat-input-bar">
+      <input 
+        type="text" 
+        id="messageInput" 
+        class="input-field" 
+        placeholder="Digite uma mensagem..." 
+        autocomplete="off"
+        onkeydown="if(event.key === 'Enter') sendMessage()"
+      >
+      <button class="btn-send" id="btnSend" onclick="sendMessage()" title="Enviar mensagem">
+        <svg viewBox="0 0 24 24">
+          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Footer info -->
+    <div class="info-banner">
+      Desafio Prático Analista de IA · Profissionais SA (PSA) · <a href="https://github.com/marcosrodsa/PSA" target="_blank">Ver Repositório GitHub</a>
+    </div>
+  </div>
+
+  <script>
+    function getCurrentTime() {
+      const now = new Date();
+      return now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+    }
+
+    document.getElementById('initialTime').innerText = getCurrentTime();
+
+    function appendMessage(text, type, extraInfo = '') {
+      const chatMessages = document.getElementById('chatMessages');
+      const typingIndicator = document.getElementById('typingIndicator');
+
+      const msgDiv = document.createElement('div');
+      msgDiv.className = `message ${type}`;
+
+      let content = text;
+      if (extraInfo) {
+        content += `<br><small style="opacity: 0.7; font-size: 11px;">${extraInfo}</small>`;
+      }
+
+      msgDiv.innerHTML = `
+        ${content}
+        <div class="message-meta">
+          <span>${getCurrentTime()}</span>
+          ${type === 'sent' ? '<span class="ticks">✓✓</span>' : ''}
+        </div>
+      `;
+
+      chatMessages.insertBefore(msgDiv, typingIndicator);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('messageInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      input.value = '';
+      appendMessage(text, 'sent');
+
+      const webhookUrl = document.getElementById('webhookUrl').value.trim();
+      const userFrom = document.getElementById('userFrom').value.trim() || '5511999990000';
+
+      const typingIndicator = document.getElementById('typingIndicator');
+      typingIndicator.style.display = 'flex';
+      const chatMessages = document.getElementById('chatMessages');
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+
+      const startTime = performance.now();
+
+      try {
+        const response = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            from: userFrom,
+            mensagem: text
+          })
+        });
+
+        const elapsed = Math.round(performance.now() - startTime);
+        typingIndicator.style.display = 'none';
+
+        if (!response.ok) {
+          appendMessage(`⚠️ Erro na resposta do n8n (HTTP ${response.status})`, 'received');
+          return;
+        }
+
+        const data = await response.json();
+        const replyText = data.resposta || JSON.stringify(data);
+        const meta = `⚡ Respondido pelo n8n em ${elapsed}ms | Usuário: ${data.usuario || userFrom}`;
+
+        appendMessage(replyText, 'received', meta);
+
+      } catch (err) {
+        typingIndicator.style.display = 'none';
+        appendMessage(`❌ Erro ao conectar com o webhook: ${err.message}. Verifique sua conexão ou CORS.`, 'received');
+      }
+    }
+
+    function sendPreset(text) {
+      document.getElementById('messageInput').value = text;
+      sendMessage();
+    }
+  </script>
+</body>
+</html>

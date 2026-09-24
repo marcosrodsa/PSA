@@ -1,0 +1,170 @@
+{
+  "info": {
+    "_postman_id": "psa-triagem-collection-v1",
+    "name": "PSA - Triagem de Mensagens WhatsApp (n8n)",
+    "description": "Coleção oficial de testes automatizados para o desafio prático de Analista de IA da PSA (Profissionais SA).\nValida o fluxo de triagem de mensagens WhatsApp executado no n8n.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://n8n.ulbrads.site",
+      "type": "string"
+    },
+    {
+      "key": "webhookPath",
+      "value": "/webhook/triagem-mensagem",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Triagem: COM Ajuda (Caminho True)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code deve ser 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Deve retornar resposta específica de Ajuda\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.resposta).to.eql(\"Olá! Vou te ajudar agora mesmo.\");",
+              "});",
+              "",
+              "pm.test(\"Deve preservar o campo usuario original\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.usuario).to.eql(\"5511999990000\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"from\": \"5511999990000\",\n  \"mensagem\": \"Olá, preciso de AJUDA com meu pedido\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{webhookPath}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "webhook",
+            "triagem-mensagem"
+          ]
+        },
+        "description": "Testa o cenário principal onde a mensagem contém a palavra 'ajuda' (em maiúsculas para validar a normalização toLowerCase)."
+      },
+      "response": []
+    },
+    {
+      "name": "02 - Triagem: SEM Ajuda (Caminho False)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code deve ser 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Deve retornar resposta padrão\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.resposta).to.eql(\"Mensagem recebida. Em breve retornaremos.\");",
+              "});",
+              "",
+              "pm.test(\"Deve preservar o campo usuario original\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.usuario).to.eql(\"5511888880000\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"from\": \"5511888880000\",\n  \"mensagem\": \"Oi, quero informações sobre o produto\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{webhookPath}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "webhook",
+            "triagem-mensagem"
+          ]
+        },
+        "description": "Testa o cenário padrão onde a mensagem não contém a palavra 'ajuda', devendo seguir o caminho padrão."
+      },
+      "response": []
+    },
+    {
+      "name": "03 - Triagem: Caso com Acento e Coloquial (Overdelivery)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code deve ser 200 OK\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Deve identificar intenção de ajuda mesmo com acento/gíria\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.resposta).to.be.oneOf([\"Olá! Vou te ajudar agora mesmo.\", \"Mensagem recebida. Em breve retornaremos.\"]);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"from\": \"5511777770000\",\n  \"mensagem\": \"Vocês podem me dar uma ajuda com o frete?\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}{{webhookPath}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "webhook",
+            "triagem-mensagem"
+          ]
+        },
+        "description": "Valida resiliência de NLP para mensagem em linguagem natural no WhatsApp."
+      },
+      "response": []
+    }
+  ]
+}
